@@ -60,7 +60,8 @@ def _theme_query(tokens: list) -> Optional[str]:
     return None
 
 
-def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "anon") -> AssistResponse:
+def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "anon",
+           llm_mode: str = "auto", model: Optional[str] = None) -> AssistResponse:
     start = time.perf_counter()
     result: IntentResult = detect(query, index.vocabulary())
     lang = result.language
@@ -68,15 +69,17 @@ def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "a
     search_query = query
     llm_clarify: Optional[str] = None
 
-    # Escalate to the LLM when the fast path can't fully parse the query: either
-    # nothing is retrievable, or some content tokens are unknown to the index
-    # (e.g. "spiegelei fur fruhstuck" — 'frühstück' matches but 'spiegelei' doesn't,
-    # so rules alone would return generic breakfast items instead of eggs).
+    # auto: escalate to the LLM when the fast path can't fully parse the query —
+    # nothing retrievable, or some content tokens unknown to the index (e.g.
+    # "spiegelei fur fruhstuck": 'frühstück' matches but 'spiegelei' doesn't).
+    # always: every query goes through the LLM. off: rules only.
     needs_llm = (not result.is_specific) or bool(result.unknown_tokens)
-    if llm.available() and needs_llm and result.intent in ("search", "discovery"):
-        understood = llm.classify(query, user_context=context.prompt_context(user_id))
+    use_llm = llm.available() and llm_mode != "off" and (
+        llm_mode == "always" or (needs_llm and result.intent in ("search", "discovery")))
+    if use_llm:
+        understood = llm.classify(query, user_context=context.prompt_context(user_id), model=model)
         if understood:
-            engine = f"rules+{llm.model_name()}@{llm.backend()}"
+            engine = f"rules+{llm.model_name(model)}@{llm.backend()}"
             lang = understood["language"]
             result.intent = understood["intent"]
             result.partner = understood["partner"] or result.partner

@@ -69,6 +69,15 @@ categories the user demonstrably cares about); never contradict the explicit que
 """
 
 
+# Validated against the Vertex AI global endpoint (2.0-flash* are not served there).
+ALLOWED_MODELS = (
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash",
+)
+
+
 def backend() -> Optional[str]:
     if os.getenv("VERTEX_PROJECT"):
         return "vertex-ai"
@@ -81,7 +90,9 @@ def available() -> bool:
     return backend() is not None
 
 
-def model_name() -> str:
+def model_name(override: Optional[str] = None) -> str:
+    if override in ALLOWED_MODELS:
+        return override
     return os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
 
 
@@ -98,17 +109,18 @@ def _metadata_token() -> str:
     return _token_cache["value"]
 
 
-def _request(body: dict) -> httpx.Response:
+def _request(body: dict, model: Optional[str] = None) -> httpx.Response:
     if backend() == "vertex-ai":
-        url = _VERTEX_URL.format(project=os.environ["VERTEX_PROJECT"], model=model_name())
+        url = _VERTEX_URL.format(project=os.environ["VERTEX_PROJECT"], model=model_name(model))
         headers = {"Authorization": f"Bearer {_metadata_token()}"}
     else:
-        url = _AISTUDIO_URL.format(model=model_name())
+        url = _AISTUDIO_URL.format(model=model_name(model))
         headers = {"x-goog-api-key": os.environ["GEMINI_API_KEY"]}
     return httpx.post(url, headers=headers, json=body, timeout=_TIMEOUT_S)
 
 
-def classify(query: str, user_context: Optional[str] = None) -> Optional[dict]:
+def classify(query: str, user_context: Optional[str] = None,
+             model: Optional[str] = None) -> Optional[dict]:
     """Returns a validated understanding dict, or None (caller falls back to rules)."""
     if not available():
         return None
@@ -120,7 +132,7 @@ def classify(query: str, user_context: Optional[str] = None) -> Optional[dict]:
     }
     for attempt in (1, 2):  # one retry: transient 5xx happen
         try:
-            response = _request(body)
+            response = _request(body, model)
             if response.status_code >= 500 and attempt == 1:
                 time.sleep(0.3)
                 continue

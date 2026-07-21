@@ -93,7 +93,8 @@ def performance_report() -> str:
 @app.post("/assist", response_model=AssistResponse)
 def assist(request: AssistRequest) -> AssistResponse:
     try:
-        response = handle(request.query, _state["index"], request.max_results, request.user_id)
+        response = handle(request.query, _state["index"], request.max_results,
+                          request.user_id, request.llm_mode, request.model)
     except Exception:  # defensive: never leak internals to the client
         log.exception("assist failed for query=%r", request.query)
         raise HTTPException(status_code=500, detail="internal error")

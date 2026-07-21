@@ -13,6 +13,11 @@ class AssistRequest(BaseModel):
     max_results: int = Field(5, ge=1, le=20)
     user_id: str = Field("anon", min_length=1, max_length=64,
                          description="Stable id for the per-user interest context")
+    llm_mode: Literal["auto", "always", "off"] = Field(
+        "auto", description="auto: LLM only when rules can't parse; always: LLM on every query; off: rules only")
+    model: Optional[Literal["gemini-2.5-flash-lite", "gemini-2.5-flash",
+                            "gemini-3.1-flash-lite", "gemini-3.5-flash"]] = Field(
+        None, description="Gemini model tier override (default: gemini-2.5-flash-lite)")
 
 
 class Product(BaseModel):

@@ -7796,7 +7796,7 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=29b5caa0">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=64bc9175">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7806,7 +7806,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8a8c93f8">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=c25b144d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7862,7 +7862,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=380f2524">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=72fd4103">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7872,7 +7872,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=97f253fb">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=46ba2c58">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7895,16 +7895,94 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{'requests': 150, 'concurrency': 5, 'errors': 0, 'wall_s': 4.75, 'rps': 31.6, 'p50_ms': 140.5, 'p95_ms': 154.7, 'p99_ms': 619.0}
-{'requests': 150, 'concurrency': 20, 'errors': 0, 'wall_s': 2.54, 'rps': 59.0, 'p50_ms': 147.0, 'p95_ms': 1510.7, 'p99_ms': 1525.1}
-{'requests': 150, 'concurrency': 40, 'errors': 0, 'wall_s': 3.07, 'rps': 48.9, 'p50_ms': 146.9, 'p95_ms': 2761.4, 'p99_ms': 2816.4}
+<pre>{'requests': 150, 'concurrency': 5, 'errors': 0, 'wall_s': 4.68, 'rps': 32.1, 'p50_ms': 138.5, 'p95_ms': 149.5, 'p99_ms': 596.8}
+{'requests': 150, 'concurrency': 20, 'errors': 0, 'wall_s': 2.47, 'rps': 60.8, 'p50_ms': 138.5, 'p95_ms': 1495.4, 'p99_ms': 1526.2}
+{'requests': 150, 'concurrency': 40, 'errors': 0, 'wall_s': 3.13, 'rps': 48.0, 'p50_ms': 157.3, 'p95_ms': 2739.6, 'p99_ms': 2801.4}
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fa57e269">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1d593b1e">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="LLM-model-tiers:-server-side-latency-per-Gemini-model">LLM model tiers: server-side latency per Gemini model<a class="anchor-link" href="#LLM-model-tiers:-server-side-latency-per-Gemini-model">¶</a></h2><p>Same paraphrase queries, <code>llm_mode: always</code>, measured via the response's own <code>latency_ms</code> (server-side handler time incl. the Vertex AI call — network round-trip to the client excluded). Escalated-path latency is dominated by model inference, so this is a direct tier comparison.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=6cf0cb8e">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">MODELS</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'gemini-2.5-flash-lite'</span><span class="p">,</span> <span class="s1">'gemini-2.5-flash'</span><span class="p">,</span> <span class="s1">'gemini-3.1-flash-lite'</span><span class="p">,</span> <span class="s1">'gemini-3.5-flash'</span><span class="p">]</span>
+<span class="n">PARAPHRASES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'etwas gegen wunden Po beim Kleinkind'</span><span class="p">,</span> <span class="s1">'pancakes for the kids'</span><span class="p">,</span>
+               <span class="s1">'was Schönes zum Naschen'</span><span class="p">,</span> <span class="s1">'stuff for taco night'</span><span class="p">,</span> <span class="s1">'spiegelei fürs frühstück'</span><span class="p">,</span>
+               <span class="s1">'something for a rainy sunday afternoon'</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'model'</span><span class="si">:</span><span class="s2">26</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'p50 ms'</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'p95 ms'</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'mean ms'</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2">  engine sample"</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">MODELS</span><span class="p">:</span>
+    <span class="n">lats</span><span class="p">,</span> <span class="n">engine</span> <span class="o">=</span> <span class="p">[],</span> <span class="s1">''</span>
+    <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">PARAPHRASES</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">BASE</span><span class="si">}</span><span class="s1">/assist'</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s1">'query'</span><span class="p">:</span> <span class="n">q</span><span class="p">,</span> <span class="s1">'llm_mode'</span><span class="p">:</span> <span class="s1">'always'</span><span class="p">,</span>
+                          <span class="s1">'model'</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="s1">'user_id'</span><span class="p">:</span> <span class="sa">f</span><span class="s1">'tier-</span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s1">'</span><span class="p">},</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="n">lats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">'latency_ms'</span><span class="p">]);</span> <span class="n">engine</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s1">'engine'</span><span class="p">]</span>
+    <span class="n">lats</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">m</span><span class="si">:</span><span class="s1">26</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">lats</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">lats</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="p">]</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">lats</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">statistics</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">lats</span><span class="p">)</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1">  </span><span class="si">{</span><span class="n">engine</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>model                        p50 ms   p95 ms  mean ms  engine sample
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>gemini-2.5-flash-lite           829      956      694  rules+gemini-2.5-flash-lite@vertex-ai
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>gemini-2.5-flash               2842     5875     3103  rules+gemini-2.5-flash@vertex-ai
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>gemini-3.1-flash-lite          1020     1891     1063  rules+gemini-3.1-flash-lite@vertex-ai
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>gemini-3.5-flash               5287    12381     7273  rules
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=803305fb">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7914,12 +7992,12 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=5ba3aac1">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=2709a18b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="n">best</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s1">'rps'</span><span class="p">])</span>
@@ -7950,7 +8028,7 @@ cost per 1000 requests at 25% LLM escalation: $0.0243
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=21daec20">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b2e7b9ed">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>

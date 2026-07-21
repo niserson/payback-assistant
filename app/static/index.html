@@ -65,6 +65,25 @@
     <button type="submit" id="send">Ask</button>
   </form>
 
+  <div class="chips" style="align-items:center">
+    <label style="font-size:.82rem;color:var(--muted)">Engine:
+      <select id="mode" style="padding:4px 8px;border-radius:8px;border:1px solid var(--border)">
+        <option value="auto" selected>auto (rules, LLM on unknown terms)</option>
+        <option value="always">always LLM</option>
+        <option value="off">rules only</option>
+      </select>
+    </label>
+    <label style="font-size:.82rem;color:var(--muted)">Model:
+      <select id="model" style="padding:4px 8px;border-radius:8px;border:1px solid var(--border)">
+        <option value="gemini-2.5-flash-lite" selected>gemini-2.5-flash-lite</option>
+        <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+        <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
+        <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+      </select>
+    </label>
+    <span class="badge" id="uidbadge"></span>
+  </div>
+
   <div id="out"></div>
 </div>
 
@@ -88,6 +107,10 @@ for (const ex of EXAMPLES) {
 
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
+let UID = localStorage.getItem("pb_uid");
+if (!UID) { UID = "u-" + Math.random().toString(36).slice(2, 10); localStorage.setItem("pb_uid", UID); }
+document.getElementById("uidbadge").textContent = "user: " + UID;
+
 document.getElementById("form").onsubmit = (e) => {
   e.preventDefault();
   const q = document.getElementById("q").value.trim();
@@ -101,12 +124,13 @@ async function ask(query) {
   out.innerHTML = '<div class="card detail">Thinking…</div>';
   try {
     const t0 = performance.now();
-    let uid = localStorage.getItem("pb_uid");
-    if (!uid) { uid = "u-" + Math.random().toString(36).slice(2, 10); localStorage.setItem("pb_uid", uid); }
+    const body = {query, user_id: UID, llm_mode: document.getElementById("mode").value};
+    const model = document.getElementById("model").value;
+    if (model) body.model = model;
     const r = await fetch("/assist", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({query, user_id: uid}),
+      body: JSON.stringify(body),
     });
     if (!r.ok) throw new Error("HTTP " + r.status);
     const d = await r.json();
@@ -131,12 +155,12 @@ async function ask(query) {
           <div class="price">${p.price.toFixed(2)} €</div>
         </div>`).join("") + '</div>';
     }
-    const ints = d.user_context && d.user_context.interests;
-    if (ints && Object.keys(ints).length) {
-      html += '<div class="detail" style="margin-top:12px">Your interest profile: '
-        + Object.entries(ints).slice(0, 5).map(([c, p]) => `${esc(c)} ${p}%`).join(" · ")
-        + ' <span style="opacity:.7">(fed to the LLM at 30% weight)</span></div>';
-    }
+    const ints = (d.user_context && d.user_context.interests) || {};
+    const profile = Object.keys(ints).length
+      ? Object.entries(ints).slice(0, 5).map(([c, p]) => `${esc(c)} ${p}%`).join(" · ")
+      : "no interests recorded yet";
+    html += `<div class="detail" style="margin-top:12px">Context for <b>${esc(d.user_context ? d.user_context.user_id : UID)}</b>: `
+      + profile + ' <span style="opacity:.7">(fed to the LLM at 30% weight)</span></div>';
     html += `<details><summary>raw JSON</summary><pre>${esc(JSON.stringify(d, null, 2))}</pre></details>`;
     out.innerHTML = html + '</div>';
   } catch (err) {

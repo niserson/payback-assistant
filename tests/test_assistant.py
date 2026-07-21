@@ -183,6 +183,38 @@ def test_rules_engine_marker(client):
     assert body["engine"] == "rules"
 
 
+def test_llm_mode_off_never_calls_llm(client, monkeypatch):
+    from app import llm
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "classify", lambda *a, **k: pytest.fail("LLM called despite llm_mode=off"))
+    body = client.post("/assist", json={"query": "irgendwas total unbekanntes zeug",
+                                        "llm_mode": "off"}).json()
+    assert body["engine"] == "rules"
+
+
+def test_llm_mode_always_calls_llm_on_known_query(client, monkeypatch):
+    from app import llm
+    calls = []
+
+    def fake_classify(query, user_context=None, model=None):
+        calls.append(model)
+        return {"intent": "search", "language": "de", "partner": None,
+                "search_terms": "windeln", "clarifying_question": None}
+
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "backend", lambda: "test")
+    monkeypatch.setattr(llm, "classify", fake_classify)
+    body = client.post("/assist", json={"query": "günstige Windeln", "llm_mode": "always",
+                                        "model": "gemini-2.5-flash"}).json()
+    assert calls == ["gemini-2.5-flash"]
+    assert body["engine"].startswith("rules+gemini-2.5-flash@")
+
+
+def test_model_allowlist_validated(client):
+    response = client.post("/assist", json={"query": "Windeln", "model": "gpt-4o"})
+    assert response.status_code == 422
+
+
 # ---------- user context (interest profile) ----------
 
 def test_context_percentages():
@@ -207,14 +239,14 @@ def test_context_passed_to_llm(client, monkeypatch):
     from app import llm
     captured = {}
 
-    def fake_classify(query, user_context=None):
+    def fake_classify(query, user_context=None, model=None):
         captured["ctx"] = user_context
         return {"intent": "search", "language": "de", "partner": None,
                 "search_terms": "windeln", "clarifying_question": None}
 
     monkeypatch.setattr(llm, "available", lambda: True)
     monkeypatch.setattr(llm, "backend", lambda: "test")
-    monkeypatch.setattr(llm, "model_name", lambda: "fake")
+    monkeypatch.setattr(llm, "model_name", lambda override=None: "fake")
     monkeypatch.setattr(llm, "classify", fake_classify)
     ask_with = lambda q: client.post("/assist", json={"query": q, "user_id": "llm-ctx"}).json()
     ask_with("Windeln und Schnuller")            # builds profile via rules
@@ -226,8 +258,8 @@ def test_llm_escalation_on_unknown_tokens(client, monkeypatch):
     from app import llm
     monkeypatch.setattr(llm, "available", lambda: True)
     monkeypatch.setattr(llm, "backend", lambda: "test")
-    monkeypatch.setattr(llm, "model_name", lambda: "fake-model")
-    monkeypatch.setattr(llm, "classify", lambda q, user_context=None: {
+    monkeypatch.setattr(llm, "model_name", lambda override=None: "fake-model")
+    monkeypatch.setattr(llm, "classify", lambda q, user_context=None, model=None: {
         "intent": "search", "language": "de", "partner": None,
         "search_terms": "eier frühstück", "clarifying_question": None,
     })
