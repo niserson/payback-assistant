@@ -7796,7 +7796,7 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1f0baba9">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=df9fd4a8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7806,7 +7806,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=68b9379d">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=3e723a80">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7862,7 +7862,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b484676d">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=4a09b011">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7872,7 +7872,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=774aef71">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d9872529">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7895,26 +7895,27 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{'requests': 150, 'concurrency': 5, 'errors': 0, 'wall_s': 4.72, 'rps': 31.8, 'p50_ms': 138.7, 'p95_ms': 156.1, 'p99_ms': 665.4}
-{'requests': 150, 'concurrency': 20, 'errors': 0, 'wall_s': 2.5, 'rps': 59.9, 'p50_ms': 149.8, 'p95_ms': 1511.8, 'p99_ms': 1526.7}
-{'requests': 150, 'concurrency': 40, 'errors': 0, 'wall_s': 3.17, 'rps': 47.4, 'p50_ms': 148.7, 'p95_ms': 2772.7, 'p99_ms': 2812.5}
+<pre>{'requests': 150, 'concurrency': 5, 'errors': 0, 'wall_s': 4.69, 'rps': 32.0, 'p50_ms': 136.7, 'p95_ms': 152.3, 'p99_ms': 607.7}
+{'requests': 150, 'concurrency': 20, 'errors': 0, 'wall_s': 2.5, 'rps': 60.1, 'p50_ms': 136.6, 'p95_ms': 1521.0, 'p99_ms': 1533.8}
+{'requests': 150, 'concurrency': 40, 'errors': 0, 'wall_s': 3.43, 'rps': 43.8, 'p50_ms': 153.2, 'p95_ms': 2792.5, 'p99_ms': 2840.9}
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=619d74fe">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6ec1089e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="LLM-model-tiers:-server-side-latency-per-Gemini-model">LLM model tiers: server-side latency per Gemini model<a class="anchor-link" href="#LLM-model-tiers:-server-side-latency-per-Gemini-model">¶</a></h2><p>Same paraphrase queries, <code>llm_mode: always</code>, measured via the response's own <code>latency_ms</code> (server-side handler time incl. the Vertex AI call — network round-trip to the client excluded). Escalated-path latency is dominated by model inference, so this is a direct tier comparison.</p>
+<h2 id="LLM-model-tiers:-server-side-latency-per-Gemini-model">LLM model tiers: server-side latency per Gemini model<a class="anchor-link" href="#LLM-model-tiers:-server-side-latency-per-Gemini-model">¶</a></h2><p>Same paraphrase queries, <code>llm_mode: always</code>, measured via the response's own <code>latency_ms</code> (server-side handler time incl. the Vertex AI call — network round-trip to the client excluded).</p>
+<p><strong>LLM used</strong> counts responses whose <code>engine</code> shows the model actually answered; the remainder hit the service's 6 s LLM timeout (plus one retry) and fell back to the deterministic rules path — the ~12 s latencies of slow tiers are the two exhausted timeouts, not usable inference. <code>always</code> means <em>always attempt</em> the LLM; the timeout guard means the API still answers when a tier can't keep up.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=4d8c6569">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=90f0e580">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7926,15 +7927,19 @@ a.anchor-link {
 <span class="n">PARAPHRASES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'etwas gegen wunden Po beim Kleinkind'</span><span class="p">,</span> <span class="s1">'pancakes for the kids'</span><span class="p">,</span>
                <span class="s1">'was Schönes zum Naschen'</span><span class="p">,</span> <span class="s1">'stuff for taco night'</span><span class="p">,</span> <span class="s1">'spiegelei fürs frühstück'</span><span class="p">,</span>
                <span class="s1">'something for a rainy sunday afternoon'</span><span class="p">]</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'model'</span><span class="si">:</span><span class="s2">26</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'p50 ms'</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'p95 ms'</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'mean ms'</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2">  engine sample"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'model'</span><span class="si">:</span><span class="s2">26</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'p50 ms'</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'p95 ms'</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'mean ms'</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'LLM used'</span><span class="si">:</span><span class="s2">&gt;9</span><span class="si">}</span><span class="s2">  verdict"</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">MODELS</span><span class="p">:</span>
-    <span class="n">lats</span><span class="p">,</span> <span class="n">engine</span> <span class="o">=</span> <span class="p">[],</span> <span class="s1">''</span>
+    <span class="n">lats</span><span class="p">,</span> <span class="n">used</span> <span class="o">=</span> <span class="p">[],</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">PARAPHRASES</span><span class="p">:</span>
         <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">BASE</span><span class="si">}</span><span class="s1">/assist'</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s1">'query'</span><span class="p">:</span> <span class="n">q</span><span class="p">,</span> <span class="s1">'llm_mode'</span><span class="p">:</span> <span class="s1">'always'</span><span class="p">,</span>
                           <span class="s1">'model'</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="s1">'user_id'</span><span class="p">:</span> <span class="sa">f</span><span class="s1">'tier-</span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s1">'</span><span class="p">},</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
-        <span class="n">lats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">'latency_ms'</span><span class="p">]);</span> <span class="n">engine</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s1">'engine'</span><span class="p">]</span>
+        <span class="n">lats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">'latency_ms'</span><span class="p">])</span>
+        <span class="n">used</span> <span class="o">+=</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">r</span><span class="p">[</span><span class="s1">'engine'</span><span class="p">]</span>  <span class="c1"># engine names the model only when it answered</span>
     <span class="n">lats</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">m</span><span class="si">:</span><span class="s1">26</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">lats</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">lats</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="p">]</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">lats</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">statistics</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">lats</span><span class="p">)</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1">  </span><span class="si">{</span><span class="n">engine</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">PARAPHRASES</span><span class="p">)</span>
+    <span class="n">verdict</span> <span class="o">=</span> <span class="s1">'ok'</span> <span class="k">if</span> <span class="n">used</span> <span class="o">==</span> <span class="n">n</span> <span class="k">else</span> <span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">used</span><span class="si">}</span><span class="s1"> timeout fallback(s) to rules'</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">m</span><span class="si">:</span><span class="s1">26</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">lats</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">lats</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="p">]</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">lats</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">statistics</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">lats</span><span class="p">)</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1"> '</span>
+          <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">used</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">n</span><span class="si">:</span><span class="s1">&gt;3</span><span class="si">}</span><span class="s1">  </span><span class="si">{</span><span class="n">verdict</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -7947,42 +7952,42 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>model                        p50 ms   p95 ms  mean ms  engine sample
+<pre>model                        p50 ms   p95 ms  mean ms  LLM used  verdict
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>gemini-2.5-flash-lite           683      839      665  rules+gemini-2.5-flash-lite@vertex-ai
+<pre>gemini-2.5-flash-lite           573      617      546 6/  6  ok
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>gemini-2.5-flash               4287    12405     6452  rules
+<pre>gemini-2.5-flash               4069    12361     6263 4/  6  2 timeout fallback(s) to rules
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>gemini-3.1-flash-lite          1149     1287     1149  rules+gemini-3.1-flash-lite@vertex-ai
+<pre>gemini-3.1-flash-lite           977     1286      917 6/  6  ok
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>gemini-3.5-flash              12358    12380    11243  rules
+<pre>gemini-3.5-flash               5401    12377     7426 4/  6  2 timeout fallback(s) to rules
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=007dc0d9">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fd13f575">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7992,7 +7997,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9100a1ca">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=c0f97699">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8028,7 +8033,7 @@ cost per 1000 requests at 25% LLM escalation: $0.0243
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5098358e">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b62d473d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
