@@ -231,6 +231,22 @@ def test_model_allowlist_validated(client):
     assert response.status_code == 422
 
 
+def test_clarify_with_profile_adds_suggestions(client):
+    uid = "suggest-user"
+    client.post("/assist", json={"query": "Yogamatte", "user_id": uid})
+    body = client.post("/assist", json={"query": "irgendwas Schönes bitte", "user_id": uid}).json()
+    assert body["action"]["type"] == "clarify" and body["clarifying_question"]
+    assert body["products"] and all(p["category"] == "Sport & Fitness" for p in body["products"][:1])
+    # suggestions must not feed back into the profile
+    assert body["user_context"]["interests"] == {"Sport & Fitness": 100.0}
+
+
+def test_clarify_cold_start_stays_pure(client):
+    body = client.post("/assist", json={"query": "irgendwas Schönes bitte",
+                                        "user_id": "fresh-cold-user"}).json()
+    assert body["action"]["type"] == "clarify" and not body["products"]
+
+
 # ---------- user context (interest profile) ----------
 
 def test_context_percentages():

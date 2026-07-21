@@ -91,17 +91,20 @@ def coldstart_notebook(base: str) -> nbf.NotebookNode:
              "# fresh ids per run so the in-process context store starts clean\n"
              "COLD, BABY, FIT = (f'{p}-{uuid.uuid4().hex[:8]}' for p in ('cold', 'baby', 'fit'))\n"
              "TEST_QUERIES = ['etwas für unterwegs', 'ein kleines Geschenk', 'creme',\n"
-             "                'was für den Sonntagmorgen']\n"
+             "                'was für den Sonntagmorgen', 'ein gadget für mich',\n"
+             "                'was für draußen am Wochenende']\n"
              "print('service:', requests.get(f'{BASE}/health', timeout=30).json())"),
         md("## 1 — Cold start: no history, query context only\n"
            "The system is cold-start-safe **by design**: ranking uses only the query plus a "
-           "global popularity prior; the LLM prompt contains no profile block."),
-        code("for q in TEST_QUERIES:\n"
-             "    ask(q, COLD)"),
+           "global popularity prior; the LLM prompt contains no profile block. Each query "
+           "below runs as a **fresh user** (otherwise the 'cold' user would warm itself up "
+           "with its own earlier queries — context accumulates immediately)."),
+        code("for i, q in enumerate(TEST_QUERIES):\n"
+             "    ask(q, f'{COLD}-{i}')"),
         md("## 2 — Build the personas (seed queries recorded into each profile)"),
         code("for q in ('Windeln', 'Schnuller und Feuchttücher', 'Babybrei'):\n"
              "    ask(q, BABY, show=False)\n"
-             "for q in ('Yogamatte', 'Fitness Tracker', 'Springseil'):\n"
+             "for q in ('Yogamatte', 'Fitness Tracker', 'Springseil', 'Trinkflasche und Rucksack'):\n"
              "    ask(q, FIT, show=False)\n"
              "profile = lambda uid: ask('Windeln' if uid == BABY else 'Yogamatte', uid, show=False)['user_context']['interests']\n"
              "print('baby persona profile   :', profile(BABY))\n"

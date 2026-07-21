@@ -7796,7 +7796,7 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3e4ceda9">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=763b5f32">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7812,7 +7812,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=5aefe845">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=279ef29e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7839,7 +7839,8 @@ a.anchor-link {
 <span class="c1"># fresh ids per run so the in-process context store starts clean</span>
 <span class="n">COLD</span><span class="p">,</span> <span class="n">BABY</span><span class="p">,</span> <span class="n">FIT</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span><span class="si">}</span><span class="s1">'</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'cold'</span><span class="p">,</span> <span class="s1">'baby'</span><span class="p">,</span> <span class="s1">'fit'</span><span class="p">))</span>
 <span class="n">TEST_QUERIES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'etwas für unterwegs'</span><span class="p">,</span> <span class="s1">'ein kleines Geschenk'</span><span class="p">,</span> <span class="s1">'creme'</span><span class="p">,</span>
-                <span class="s1">'was für den Sonntagmorgen'</span><span class="p">]</span>
+                <span class="s1">'was für den Sonntagmorgen'</span><span class="p">,</span> <span class="s1">'ein gadget für mich'</span><span class="p">,</span>
+                <span class="s1">'was für draußen am Wochenende'</span><span class="p">]</span>
 <span class="nb">print</span><span class="p">(</span><span class="s1">'service:'</span><span class="p">,</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">BASE</span><span class="si">}</span><span class="s1">/health'</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
 </pre></div>
 </div>
@@ -7860,17 +7861,17 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9936af10">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=03f5238b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="1-%E2%80%94-Cold-start:-no-history,-query-context-only">1 — Cold start: no history, query context only<a class="anchor-link" href="#1-%E2%80%94-Cold-start:-no-history,-query-context-only">¶</a></h2><p>The system is cold-start-safe <strong>by design</strong>: ranking uses only the query plus a global popularity prior; the LLM prompt contains no profile block.</p>
+<h2 id="1-%E2%80%94-Cold-start:-no-history,-query-context-only">1 — Cold start: no history, query context only<a class="anchor-link" href="#1-%E2%80%94-Cold-start:-no-history,-query-context-only">¶</a></h2><p>The system is cold-start-safe <strong>by design</strong>: ranking uses only the query plus a global popularity prior; the LLM prompt contains no profile block. Each query below runs as a <strong>fresh user</strong> (otherwise the 'cold' user would warm itself up with its own earlier queries — context accumulates immediately).</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f122bea7">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=1286dd50">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7878,8 +7879,8 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">TEST_QUERIES</span><span class="p">:</span>
-    <span class="n">ask</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">COLD</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">TEST_QUERIES</span><span class="p">):</span>
+    <span class="n">ask</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">COLD</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -7913,14 +7914,28 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>  'was für den Sonntagmorgen'                  -&gt; Knuspermüsli Schoko [Frühstück], Bio-Honig [Frühstück], Milchaufschäumer elektrisch [Küche &amp; Haushaltsgeräte]
+<pre>  'was für den Sonntagmorgen'                  -&gt; (no products) | clarify: Was möchtest du denn am Sonntagmorgen machen?
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'ein gadget für mich'                        -&gt; (no products) | clarify: Was für ein Gadget suchst du denn?
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'was für draußen am Wochenende'              -&gt; (no products) | clarify: Was möchtest du denn gerne machen?
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ed070300">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=4d52d481">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7930,7 +7945,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8c15d3d1">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=bc0b72a6">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7940,7 +7955,7 @@ a.anchor-link {
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'Windeln'</span><span class="p">,</span> <span class="s1">'Schnuller und Feuchttücher'</span><span class="p">,</span> <span class="s1">'Babybrei'</span><span class="p">):</span>
     <span class="n">ask</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">BABY</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'Yogamatte'</span><span class="p">,</span> <span class="s1">'Fitness Tracker'</span><span class="p">,</span> <span class="s1">'Springseil'</span><span class="p">):</span>
+<span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'Yogamatte'</span><span class="p">,</span> <span class="s1">'Fitness Tracker'</span><span class="p">,</span> <span class="s1">'Springseil'</span><span class="p">,</span> <span class="s1">'Trinkflasche und Rucksack'</span><span class="p">):</span>
     <span class="n">ask</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">FIT</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">profile</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">uid</span><span class="p">:</span> <span class="n">ask</span><span class="p">(</span><span class="s1">'Windeln'</span> <span class="k">if</span> <span class="n">uid</span> <span class="o">==</span> <span class="n">BABY</span> <span class="k">else</span> <span class="s1">'Yogamatte'</span><span class="p">,</span> <span class="n">uid</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="s1">'user_context'</span><span class="p">][</span><span class="s1">'interests'</span><span class="p">]</span>
 <span class="nb">print</span><span class="p">(</span><span class="s1">'baby persona profile   :'</span><span class="p">,</span> <span class="n">profile</span><span class="p">(</span><span class="n">BABY</span><span class="p">))</span>
@@ -7964,14 +7979,14 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>fitness persona profile: {'Sport &amp; Fitness': 100.0}
+<pre>fitness persona profile: {'Sport &amp; Fitness': 75.0, 'Outdoor &amp; Reisen': 25.0}
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=75f77afd">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b23b0331">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7981,7 +7996,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f786fa7b">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=99fcc5ac">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8010,7 +8025,7 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>  'ein kleines Geschenk'                       -&gt; (no products) | clarify: Was für ein Geschenk suchen Sie denn?
+<pre>  'ein kleines Geschenk'                       -&gt; Windeln Größe 4 Maxi [Baby &amp; Kind], Mineralwasser Classic 6er [Getränke], Schokolade Vollmilch [Süßigkeiten &amp; Snacks] | clarify: Gerne! Für wen ist das Geschenk gedacht und welches Budget hast du ungefähr?
 </pre>
 </div>
 </div>
@@ -8024,14 +8039,28 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>  'was für den Sonntagmorgen'                  -&gt; Milchaufschäumer elektrisch [Küche &amp; Haushaltsgeräte], Röstkaffee ganze Bohne [Getränke]
+<pre>  'was für den Sonntagmorgen'                  -&gt; Knuspermüsli Schoko [Frühstück], Bio-Honig [Frühstück], Milchaufschäumer elektrisch [Küche &amp; Haushaltsgeräte]
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'ein gadget für mich'                        -&gt; Windeln Größe 4 Maxi [Baby &amp; Kind], Mineralwasser Classic 6er [Getränke], Schokolade Vollmilch [Süßigkeiten &amp; Snacks] | clarify: Was für ein Gadget suchst du denn?
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'was für draußen am Wochenende'              -&gt; Campingstuhl faltbar [Outdoor &amp; Reisen], Rucksack 25l wasserdicht [Outdoor &amp; Reisen], Trinkflasche Edelstahl 1l [Outdoor &amp; Reisen]
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=edf90c64">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5f82e36d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8041,7 +8070,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=92d607c1">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f7d38ba8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8063,14 +8092,14 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>  'etwas für unterwegs'                        -&gt; (no products) | clarify: Was für unterwegs suchst du denn?
+<pre>  'etwas für unterwegs'                        -&gt; Rucksack 25l wasserdicht [Outdoor &amp; Reisen], Kartoffelchips Paprika [Süßigkeiten &amp; Snacks], Mineralwasser Classic 6er [Getränke]
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>  'ein kleines Geschenk'                       -&gt; (no products) | clarify: Für wen oder welchen Anlass suchen Sie ein Geschenk?
+<pre>  'ein kleines Geschenk'                       -&gt; Fitness Tracker [Sport &amp; Fitness], Mineralwasser Classic 6er [Getränke], Rucksack 25l wasserdicht [Outdoor &amp; Reisen] | clarify: Für wen oder welchen Anlass soll das Geschenk sein?
 </pre>
 </div>
 </div>
@@ -8084,14 +8113,28 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>  'was für den Sonntagmorgen'                  -&gt; Milchaufschäumer elektrisch [Küche &amp; Haushaltsgeräte], Röstkaffee ganze Bohne [Getränke]
+<pre>  'was für den Sonntagmorgen'                  -&gt; Knuspermüsli Schoko [Frühstück], Bio-Honig [Frühstück], Milchaufschäumer elektrisch [Küche &amp; Haushaltsgeräte]
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'ein gadget für mich'                        -&gt; Fitness Tracker [Sport &amp; Fitness], Mineralwasser Classic 6er [Getränke], Rucksack 25l wasserdicht [Outdoor &amp; Reisen] | clarify: Was für ein Gadget suchst du denn?
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'was für draußen am Wochenende'              -&gt; Campingstuhl faltbar [Outdoor &amp; Reisen], Rucksack 25l wasserdicht [Outdoor &amp; Reisen], Trinkflasche Edelstahl 1l [Outdoor &amp; Reisen]
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=336db96a">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6f39e179">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>

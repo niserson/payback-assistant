@@ -60,6 +60,26 @@ def _theme_query(tokens: list) -> Optional[str]:
     return None
 
 
+def _profile_suggestions(index: BM25Index, profile: dict, k: int) -> list:
+    """Popularity-ranked picks from the user's top interest categories.
+
+    Deterministic backstop for vague queries: the clarifying question is still
+    asked, but a user with history also sees suggestions from the categories
+    they demonstrably care about (a cold-start user gets the pure question).
+    """
+    top_categories = sorted(profile.items(), key=lambda kv: -kv[1])[:3]
+    picks = []
+    for category, share in top_categories:
+        items = sorted((p for p in index.products if p["category"] == category),
+                       key=lambda p: -p["popularity"])
+        for product in items[: max(1, k // len(top_categories))]:
+            item = {key: value for key, value in product.items() if key != "popularity"}
+            item["score"] = round(product["popularity"] * share / 100, 3)
+            picks.append(item)
+    picks.sort(key=lambda p: -p["score"])
+    return picks[:k]
+
+
 def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "anon",
            llm_mode: str = "auto", model: Optional[str] = None) -> AssistResponse:
     start = time.perf_counter()
@@ -153,8 +173,21 @@ def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "a
             clarifying = _CLARIFY[lang]["default"]
             action = Action(type="clarify", detail=clarifying)
 
+    # Vague query + existing profile: keep the clarifying question but add
+    # deterministic suggestions from the user's top categories.
+    suggested = False
+    if action.type == "clarify" and profile and not products:
+        products = _profile_suggestions(index, profile, max_results)
+        suggested = bool(products)
+        if suggested:
+            action = Action(type="clarify", detail=action.detail + (
+                " Bis dahin ein paar Ideen basierend auf deinen Interessen."
+                if lang == "de" else " Meanwhile, a few ideas based on your interests."))
+
     # Store this query's interests, then report the updated profile back.
-    context.record(user_id, [p["category"] for p in products])
+    # Profile-based suggestions are NOT recorded — that would be a feedback loop
+    # reinforcing the profile without any user intent behind it.
+    context.record(user_id, [] if suggested else [p["category"] for p in products])
     user_context = {"user_id": user_id, "interests": context.interests(user_id)}
 
     latency_ms = round((time.perf_counter() - start) * 1000, 2)

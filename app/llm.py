@@ -65,9 +65,11 @@ Rules:
 _CONTEXT_BLOCK = """User interest profile from past queries (category: percentage): {profile}.
 Weight this profile at ~30 percent versus the current query text at ~70 percent:
 - If the query is AMBIGUOUS or VAGUE and the profile has dominant categories, RESOLVE it
-  toward those categories: produce German search_terms fitting them (e.g. profile
-  "Baby & Kind 80%" + query "creme" -> "wundschutz creme baby") instead of asking a
+  toward those categories: produce German search_terms fitting them instead of asking a
   clarifying question.
+  Example: profile "Baby & Kind 80%" + query "creme" -> "wundschutz creme baby"
+  Example: profile "Sport & Fitness 70%, Outdoor & Reisen 25%" + query
+  "was für draußen am Wochenende" -> "campingstuhl rucksack trinkflasche"
 - If the query is explicit, follow it — never let the profile contradict stated intent.
 """
 
