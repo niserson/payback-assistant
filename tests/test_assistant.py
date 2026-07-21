@@ -14,6 +14,8 @@ def _no_llm(monkeypatch):
     """Tests must be deterministic: force the rule path even if a key is set."""
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("VERTEX_PROJECT", raising=False)
+    from app import context
+    context.reset()
 
 
 @pytest.fixture(scope="module")
@@ -181,12 +183,51 @@ def test_rules_engine_marker(client):
     assert body["engine"] == "rules"
 
 
+# ---------- user context (interest profile) ----------
+
+def test_context_percentages():
+    from app import context
+    context.record("u1", ["Baby & Kind", "Baby & Kind", "Süßigkeiten & Snacks"])
+    ints = context.interests("u1")
+    assert ints["Baby & Kind"] == 66.7 and ints["Süßigkeiten & Snacks"] == 33.3
+    assert context.prompt_context("u1").startswith("Baby & Kind 66.7%")
+    assert context.prompt_context("nobody") is None
+
+
+def test_context_accumulates_over_requests(client):
+    r1 = client.post("/assist", json={"query": "Windeln", "user_id": "ctx-user"}).json()
+    assert r1["user_context"]["interests"].get("Baby & Kind") == 100.0
+    r2 = client.post("/assist", json={"query": "Schokolade", "user_id": "ctx-user"}).json()
+    ints = r2["user_context"]["interests"]
+    assert "Baby & Kind" in ints and "Süßigkeiten & Snacks" in ints
+    assert abs(sum(ints.values()) - 100.0) < 1.0
+
+
+def test_context_passed_to_llm(client, monkeypatch):
+    from app import llm
+    captured = {}
+
+    def fake_classify(query, user_context=None):
+        captured["ctx"] = user_context
+        return {"intent": "search", "language": "de", "partner": None,
+                "search_terms": "windeln", "clarifying_question": None}
+
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "backend", lambda: "test")
+    monkeypatch.setattr(llm, "model_name", lambda: "fake")
+    monkeypatch.setattr(llm, "classify", fake_classify)
+    ask_with = lambda q: client.post("/assist", json={"query": q, "user_id": "llm-ctx"}).json()
+    ask_with("Windeln und Schnuller")            # builds profile via rules
+    ask_with("brauche was fuer den kleinen wonneproppen")  # unknown tokens -> LLM
+    assert captured["ctx"] and "Baby & Kind" in captured["ctx"]
+
+
 def test_llm_escalation_on_unknown_tokens(client, monkeypatch):
     from app import llm
     monkeypatch.setattr(llm, "available", lambda: True)
     monkeypatch.setattr(llm, "backend", lambda: "test")
     monkeypatch.setattr(llm, "model_name", lambda: "fake-model")
-    monkeypatch.setattr(llm, "classify", lambda q: {
+    monkeypatch.setattr(llm, "classify", lambda q, user_context=None: {
         "intent": "search", "language": "de", "partner": None,
         "search_terms": "eier frühstück", "clarifying_question": None,
     })

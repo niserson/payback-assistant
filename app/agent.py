@@ -16,7 +16,7 @@ to the rule path if the LLM is unavailable.
 import time
 from typing import Optional
 
-from . import llm
+from . import context, llm
 from .intent import IntentResult, detect
 from .retrieval import BM25Index
 from .schemas import Action, AssistResponse, Product
@@ -60,7 +60,7 @@ def _theme_query(tokens: list) -> Optional[str]:
     return None
 
 
-def handle(query: str, index: BM25Index, max_results: int = 5) -> AssistResponse:
+def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "anon") -> AssistResponse:
     start = time.perf_counter()
     result: IntentResult = detect(query, index.vocabulary())
     lang = result.language
@@ -74,7 +74,7 @@ def handle(query: str, index: BM25Index, max_results: int = 5) -> AssistResponse
     # so rules alone would return generic breakfast items instead of eggs).
     needs_llm = (not result.is_specific) or bool(result.unknown_tokens)
     if llm.available() and needs_llm and result.intent in ("search", "discovery"):
-        understood = llm.classify(query)
+        understood = llm.classify(query, user_context=context.prompt_context(user_id))
         if understood:
             engine = f"rules+{llm.model_name()}@{llm.backend()}"
             lang = understood["language"]
@@ -146,6 +146,10 @@ def handle(query: str, index: BM25Index, max_results: int = 5) -> AssistResponse
             clarifying = _CLARIFY[lang]["default"]
             action = Action(type="clarify", detail=clarifying)
 
+    # Store this query's interests, then report the updated profile back.
+    context.record(user_id, [p["category"] for p in products])
+    user_context = {"user_id": user_id, "interests": context.interests(user_id)}
+
     latency_ms = round((time.perf_counter() - start) * 1000, 2)
     return AssistResponse(
         query=query,
@@ -157,5 +161,6 @@ def handle(query: str, index: BM25Index, max_results: int = 5) -> AssistResponse
         products=[Product(**p) for p in products],
         clarifying_question=clarifying,
         engine=engine,
+        user_context=user_context,
         latency_ms=latency_ms,
     )

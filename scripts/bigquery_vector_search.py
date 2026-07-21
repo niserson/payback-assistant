@@ -1,8 +1,9 @@
-"""BigQuery vector search over the partner catalogs (challenge: preferred services).
+"""BigQuery vector search over THREE separate partner tables (challenge: preferred services).
 
-Ingests all three partner catalogs into BigQuery with Vertex AI text embeddings and
-runs a semantic VECTOR_SEARCH — the production-scale retrieval path (the serving API
-keeps in-memory BM25, which is faster and cheaper at demo catalog size).
+Each partner catalog is ingested into its OWN table (products_dm / products_edeka /
+products_amazon) with Vertex AI text embeddings — mirroring how disparate partner
+feeds land separately in a warehouse — and a single query fans out with VECTOR_SEARCH
+over all three tables simultaneously (UNION ALL), merging by cosine distance.
 
 Usage (requires gcloud auth + bq CLI):
     python scripts/bigquery_vector_search.py --project <gcp-project> "wunder Po Kleinkind"
@@ -19,12 +20,12 @@ from pathlib import Path
 import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from app.catalog import build_catalog  # noqa: E402
+from app.catalog import PARTNERS, build_catalog  # noqa: E402
 
 EMBED_URL = ("https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/"
              "us-central1/publishers/google/models/text-embedding-005:predict")
 DATASET = "payback_assistant"
-TABLE = "products"
+LEGACY_TABLE = "products"  # single-table layout from the first iteration — removed
 
 SCHEMA = [
     {"name": "id", "type": "STRING"}, {"name": "partner", "type": "STRING"},
@@ -65,41 +66,53 @@ def main() -> None:
     bq, token = _cli("bq"), _token()
 
     catalog = build_catalog()
-    print(f"Embedding {len(catalog)} products via Vertex AI text-embedding-005 ...")
-    docs = [f"{p['name']} {p['brand']} {p['category']} {' '.join(p['tags'])}" for p in catalog]
-    vectors = []
-    for i in range(0, len(docs), 25):
-        vectors.extend(embed(docs[i:i + 25], args.project, token, "RETRIEVAL_DOCUMENT"))
+    by_partner = {p: [item for item in catalog if item["partner"] == p] for p in PARTNERS}
+
+    subprocess.run([bq, "--project_id", args.project, "mk", "-d", "--location=EU", DATASET],
+                   capture_output=True, text=True)  # idempotent: 'already exists' is fine
+    print(f"Removing legacy single table {DATASET}.{LEGACY_TABLE} (if present) ...")
+    subprocess.run([bq, "--project_id", args.project, "rm", "-f", "-t", f"{DATASET}.{LEGACY_TABLE}"],
+                   capture_output=True, text=True)
 
     with tempfile.TemporaryDirectory() as tmp:
-        rows_path = Path(tmp) / "rows.jsonl"
         schema_path = Path(tmp) / "schema.json"
         schema_path.write_text(json.dumps(SCHEMA), encoding="utf-8")
-        with rows_path.open("w", encoding="utf-8") as fh:
-            for product, vector in zip(catalog, vectors):
-                row = {k: product[k] for k in ("id", "partner", "name", "brand", "category", "price", "unit")}
-                row["embedding"] = vector
-                fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+        for partner, items in by_partner.items():
+            table = f"products_{partner}"
+            print(f"Embedding + loading {len(items)} products into {DATASET}.{table} ...")
+            docs = [f"{p['name']} {p['brand']} {p['category']} {' '.join(p['tags'])}" for p in items]
+            vectors = []
+            for i in range(0, len(docs), 25):
+                vectors.extend(embed(docs[i:i + 25], args.project, token, "RETRIEVAL_DOCUMENT"))
+            rows_path = Path(tmp) / f"{table}.jsonl"
+            with rows_path.open("w", encoding="utf-8") as fh:
+                for product, vector in zip(items, vectors):
+                    row = {k: product[k] for k in ("id", "partner", "name", "brand", "category", "price", "unit")}
+                    row["embedding"] = vector
+                    fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+            subprocess.run([bq, "--project_id", args.project, "load", "--replace",
+                            "--source_format=NEWLINE_DELIMITED_JSON",
+                            f"{DATASET}.{table}", str(rows_path), str(schema_path)],
+                           check=True, text=True)
 
-        print(f"Loading into BigQuery {args.project}:{DATASET}.{TABLE} ...")
-        subprocess.run([bq, "--project_id", args.project, "mk", "-d", "--location=EU", DATASET],
-                       capture_output=True, text=True)  # idempotent: 'already exists' is fine
-        subprocess.run([bq, "--project_id", args.project, "load", "--replace",
-                        "--source_format=NEWLINE_DELIMITED_JSON",
-                        f"{DATASET}.{TABLE}", str(rows_path), str(schema_path)],
-                       check=True, text=True)
-
-    print(f'Semantic VECTOR_SEARCH for: "{args.query}"')
-    query_vector = embed([args.query], args.project, token, "RETRIEVAL_QUERY")[0]
+    print(f'Simultaneous VECTOR_SEARCH across all three partner tables for: "{args.query}"')
+    query_vector = json.dumps(embed([args.query], args.project, token, "RETRIEVAL_QUERY")[0])
+    per_table = "\n      UNION ALL\n".join(
+        f"""      SELECT base.partner, base.name, base.category, base.price, distance
+      FROM VECTOR_SEARCH(
+        TABLE `{DATASET}.products_{partner}`, 'embedding',
+        (SELECT {query_vector} AS embedding),
+        top_k => 3, distance_type => 'COSINE')"""
+        for partner in PARTNERS
+    )
     sql = f"""
-    SELECT base.partner, base.name, base.price, ROUND(distance, 4) AS distance
-    FROM VECTOR_SEARCH(
-      TABLE `{DATASET}.{TABLE}`, 'embedding',
-      (SELECT {json.dumps(query_vector)} AS embedding),
-      top_k => 5, distance_type => 'COSINE')
-    ORDER BY distance
+    WITH hits AS (
+{per_table}
+    )
+    SELECT partner, name, category, price, ROUND(distance, 4) AS distance
+    FROM hits ORDER BY distance LIMIT 5
     """
-    # SQL goes via stdin: the inlined 768-dim vector exceeds the Windows argv limit.
+    # SQL goes via stdin: the inlined 768-dim vectors exceed the Windows argv limit.
     subprocess.run([bq, "--project_id", args.project, "query", "--nouse_legacy_sql"],
                    input=sql, check=True, text=True)
 

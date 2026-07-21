@@ -11,6 +11,8 @@ ActionType = Literal["recommend", "clarify", "route_to_partner", "support_handof
 class AssistRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500, description="Raw user query (de/en)")
     max_results: int = Field(5, ge=1, le=20)
+    user_id: str = Field("anon", min_length=1, max_length=64,
+                         description="Stable id for the per-user interest context")
 
 
 class Product(BaseModel):
@@ -40,4 +42,5 @@ class AssistResponse(BaseModel):
     products: List[Product] = []
     clarifying_question: Optional[str] = None
     engine: str = "rules"  # "rules" or "rules+<llm-model>" when the LLM assisted
+    user_context: Optional[dict] = None  # {user_id, interests: {category: percent}}
     latency_ms: float

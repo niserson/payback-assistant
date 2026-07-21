@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 
 from . import __version__, llm
 from .agent import handle
-from .catalog import PARTNERS, load_catalog
+from .catalog import PARTNERS, load_catalog, taxonomy_summary
 from .retrieval import BM25Index
 from .schemas import AssistRequest, AssistResponse
 
@@ -56,14 +56,44 @@ def health():
 
 @app.get("/partners")
 def partners():
-    return {key: {"label": meta["label"], "profile": meta["profile"], "items": len(meta["items"])}
+    return {key: {"label": meta["label"], "profile": meta["profile"],
+                  "categories": len(meta["taxonomy"]),
+                  "items": sum(len(v) for v in meta["taxonomy"].values())}
             for key, meta in PARTNERS.items()}
+
+
+@app.get("/taxonomy")
+def taxonomy():
+    """Per-partner category trees with product counts."""
+    return taxonomy_summary()
+
+
+def _static_page(filename: str) -> str:
+    path = Path(__file__).parent / "static" / filename
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"{filename} not generated yet")
+    return path.read_text(encoding="utf-8")
+
+
+@app.get("/architecture", response_class=HTMLResponse, include_in_schema=False)
+def architecture() -> str:
+    return _static_page("architecture.html")
+
+
+@app.get("/demo-notebook", response_class=HTMLResponse, include_in_schema=False)
+def demo_notebook() -> str:
+    return _static_page("demo_notebook.html")
+
+
+@app.get("/performance-report", response_class=HTMLResponse, include_in_schema=False)
+def performance_report() -> str:
+    return _static_page("performance_report.html")
 
 
 @app.post("/assist", response_model=AssistResponse)
 def assist(request: AssistRequest) -> AssistResponse:
     try:
-        response = handle(request.query, _state["index"], request.max_results)
+        response = handle(request.query, _state["index"], request.max_results, request.user_id)
     except Exception:  # defensive: never leak internals to the client
         log.exception("assist failed for query=%r", request.query)
         raise HTTPException(status_code=500, detail="internal error")

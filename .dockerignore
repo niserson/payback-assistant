@@ -9,4 +9,5 @@ data/
 demo.py
 loadtest.py
 scripts/
+notebooks/
 *.md

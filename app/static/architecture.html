@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PAYBACK Assistant — Architecture</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f4f6fb;
+         color: #1a2333; margin: 0; padding: 24px 16px 48px; }
+  .wrap { max-width: 1020px; margin: 0 auto; }
+  h1 { color: #003eb0; font-size: 1.3rem; }
+  p.sub { color: #5b6579; font-size: .92rem; max-width: 72ch; }
+  .card { background: #fff; border: 1px solid #e2e7f0; border-radius: 14px; padding: 10px; overflow-x: auto; }
+  svg { display: block; margin: 0 auto; min-width: 900px; }
+  a { color: #003eb0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>PAYBACK Lightweight Assistant — Architecture</h1>
+  <p class="sub">How three disparate partner datasets are indexed and queried <b>simultaneously</b>:
+  each partner keeps its own taxonomy, ingestion normalizes everything into one shared schema,
+  and a query hits a single unified in-memory index (serving path) while the same catalogs live in
+  three separate BigQuery tables queried at once via <code>VECTOR_SEARCH … UNION ALL</code>
+  (warehouse path). <a href="/">← back to the demo UI</a></p>
+
+  <div class="card">
+  <svg viewBox="0 0 980 620" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, sans-serif">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b6579"/>
+      </marker>
+      <marker id="arrb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#003eb0"/>
+      </marker>
+    </defs>
+
+    <!-- Partner taxonomies -->
+    <g>
+      <rect x="20" y="30" width="180" height="86" rx="10" fill="#e3f0fa" stroke="#0a6cbd"/>
+      <text x="110" y="55" text-anchor="middle" font-size="14" font-weight="700" fill="#0a6cbd">Partner A · dm</text>
+      <text x="110" y="74" text-anchor="middle" font-size="11" fill="#33506b">drugstore taxonomy</text>
+      <text x="110" y="90" text-anchor="middle" font-size="11" fill="#33506b">9 categories · 25 products</text>
+
+      <rect x="20" y="136" width="180" height="86" rx="10" fill="#fdf6cf" stroke="#c7a900"/>
+      <text x="110" y="161" text-anchor="middle" font-size="14" font-weight="700" fill="#6b5900">Partner B · EDEKA</text>
+      <text x="110" y="180" text-anchor="middle" font-size="11" fill="#6b5900">grocery taxonomy</text>
+      <text x="110" y="196" text-anchor="middle" font-size="11" fill="#6b5900">12 categories · 42 products</text>
+
+      <rect x="20" y="242" width="180" height="86" rx="10" fill="#fff0da" stroke="#ff9900"/>
+      <text x="110" y="267" text-anchor="middle" font-size="14" font-weight="700" fill="#9c5f00">Partner C · Amazon</text>
+      <text x="110" y="286" text-anchor="middle" font-size="11" fill="#9c5f00">long-tail taxonomy</text>
+      <text x="110" y="302" text-anchor="middle" font-size="11" fill="#9c5f00">9 categories · 30 products</text>
+    </g>
+
+    <!-- Ingestion -->
+    <rect x="270" y="120" width="170" height="120" rx="10" fill="#eef2fb" stroke="#003eb0"/>
+    <text x="355" y="148" text-anchor="middle" font-size="13" font-weight="700" fill="#003eb0">Ingestion</text>
+    <text x="355" y="168" text-anchor="middle" font-size="11" fill="#33415c">normalize to one schema</text>
+    <text x="355" y="184" text-anchor="middle" font-size="11" fill="#33415c">umlaut/digraph folding</text>
+    <text x="355" y="200" text-anchor="middle" font-size="11" fill="#33415c">light stemming</text>
+    <text x="355" y="216" text-anchor="middle" font-size="11" fill="#33415c">field weighting</text>
+
+    <line x1="200" y1="73" x2="270" y2="150" stroke="#5b6579" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="200" y1="179" x2="270" y2="180" stroke="#5b6579" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="200" y1="285" x2="270" y2="210" stroke="#5b6579" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Unified BM25 index -->
+    <rect x="510" y="60" width="200" height="110" rx="10" fill="#e8f7ee" stroke="#147a3d"/>
+    <text x="610" y="86" text-anchor="middle" font-size="13" font-weight="700" fill="#147a3d">Unified in-memory index</text>
+    <text x="610" y="105" text-anchor="middle" font-size="11" fill="#2c5f43">ONE inverted index, BM25</text>
+    <text x="610" y="121" text-anchor="middle" font-size="11" fill="#2c5f43">concept groups + de↔en synonyms</text>
+    <text x="610" y="137" text-anchor="middle" font-size="11" fill="#2c5f43">partner = filter · popularity prior</text>
+    <text x="610" y="153" text-anchor="middle" font-size="11" fill="#2c5f43">~1 ms · serving path</text>
+
+    <!-- BigQuery three tables -->
+    <rect x="510" y="200" width="200" height="130" rx="10" fill="#f3eefc" stroke="#6d3fc0"/>
+    <text x="610" y="224" text-anchor="middle" font-size="13" font-weight="700" fill="#6d3fc0">BigQuery · 3 tables</text>
+    <text x="610" y="244" text-anchor="middle" font-size="11" fill="#4d3b73">products_dm</text>
+    <text x="610" y="260" text-anchor="middle" font-size="11" fill="#4d3b73">products_edeka</text>
+    <text x="610" y="276" text-anchor="middle" font-size="11" fill="#4d3b73">products_amazon</text>
+    <text x="610" y="296" text-anchor="middle" font-size="11" fill="#4d3b73">Vertex embeddings · VECTOR_SEARCH</text>
+    <text x="610" y="312" text-anchor="middle" font-size="11" fill="#4d3b73">UNION ALL — queried simultaneously</text>
+
+    <line x1="440" y1="150" x2="510" y2="110" stroke="#5b6579" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="440" y1="200" x2="510" y2="255" stroke="#5b6579" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Query flow -->
+    <rect x="20" y="420" width="150" height="70" rx="10" fill="#fff" stroke="#5b6579"/>
+    <text x="95" y="448" text-anchor="middle" font-size="13" font-weight="700">User query</text>
+    <text x="95" y="466" text-anchor="middle" font-size="11" fill="#5b6579">de / en · any intent</text>
+
+    <rect x="220" y="410" width="180" height="90" rx="10" fill="#eef2fb" stroke="#003eb0"/>
+    <text x="310" y="436" text-anchor="middle" font-size="13" font-weight="700" fill="#003eb0">Cloud Run · FastAPI</text>
+    <text x="310" y="454" text-anchor="middle" font-size="11" fill="#33415c">intent + language rules</text>
+    <text x="310" y="470" text-anchor="middle" font-size="11" fill="#33415c">next-best-action agent</text>
+    <text x="310" y="486" text-anchor="middle" font-size="11" fill="#33415c">user context store</text>
+
+    <rect x="450" y="410" width="200" height="90" rx="10" fill="#fdeeee" stroke="#b3261e"/>
+    <text x="550" y="434" text-anchor="middle" font-size="13" font-weight="700" fill="#b3261e">Vertex AI · Gemini</text>
+    <text x="550" y="452" text-anchor="middle" font-size="11" fill="#7c3733">only if tokens unknown to index</text>
+    <text x="550" y="468" text-anchor="middle" font-size="11" fill="#7c3733">query 70% + user context 30%</text>
+    <text x="550" y="484" text-anchor="middle" font-size="11" fill="#7c3733">→ German catalog keywords</text>
+
+    <rect x="720" y="410" width="230" height="90" rx="10" fill="#fff" stroke="#147a3d"/>
+    <text x="835" y="434" text-anchor="middle" font-size="13" font-weight="700" fill="#147a3d">Structured JSON</text>
+    <text x="835" y="452" text-anchor="middle" font-size="11" fill="#2c5f43">recommend · clarify · route ·</text>
+    <text x="835" y="468" text-anchor="middle" font-size="11" fill="#2c5f43">compare · support_handoff</text>
+    <text x="835" y="484" text-anchor="middle" font-size="11" fill="#2c5f43">+ interest profile per category</text>
+
+    <line x1="170" y1="455" x2="220" y2="455" stroke="#003eb0" stroke-width="2" marker-end="url(#arrb)"/>
+    <line x1="400" y1="455" x2="450" y2="455" stroke="#003eb0" stroke-width="2" marker-end="url(#arrb)" stroke-dasharray="6 4"/>
+    <line x1="650" y1="455" x2="720" y2="455" stroke="#003eb0" stroke-width="2" marker-end="url(#arrb)"/>
+    <path d="M 310 410 C 330 320, 500 180, 508 130" fill="none" stroke="#003eb0" stroke-width="2" marker-end="url(#arrb)"/>
+    <text x="365" y="300" font-size="11" fill="#003eb0" transform="rotate(-52 385 300)">search across ALL partners at once</text>
+
+    <text x="425" y="445" text-anchor="middle" font-size="10" fill="#b3261e">escalation</text>
+
+    <!-- legend -->
+    <text x="20" y="560" font-size="11" fill="#5b6579">Solid arrows: every request (~1 ms rules path). Dashed: LLM escalation only when the lexicon can't parse the query (~0.8 s).</text>
+    <text x="20" y="578" font-size="11" fill="#5b6579">Serving retrieval = unified BM25 (one index, partner as filter). Warehouse retrieval = three separate BigQuery tables fanned out in one UNION ALL VECTOR_SEARCH.</text>
+    <text x="20" y="596" font-size="11" fill="#5b6579">User context: every query updates a per-user category-interest profile; the profile enters the Gemini prompt with an explicit 30% weight.</text>
+  </svg>
+  </div>
+</div>
+</body>
+</html>

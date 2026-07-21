@@ -59,7 +59,13 @@ Rules:
   translate every item into German base-product keywords; never ask for clarification.
 - If the need is genuinely too vague to search, set "search_terms" null and ask ONE
   short clarifying question in the query's language.
-Query: "{query}"
+{context_block}Query: "{query}"
+"""
+
+_CONTEXT_BLOCK = """User interest profile from past queries (category: percentage): {profile}.
+Weight this profile at ~30 percent when interpreting the query — the current query text
+always dominates at ~70 percent. Use the profile only to break ambiguity (e.g. prefer the
+categories the user demonstrably cares about); never contradict the explicit query.
 """
 
 
@@ -102,12 +108,14 @@ def _request(body: dict) -> httpx.Response:
     return httpx.post(url, headers=headers, json=body, timeout=_TIMEOUT_S)
 
 
-def classify(query: str) -> Optional[dict]:
+def classify(query: str, user_context: Optional[str] = None) -> Optional[dict]:
     """Returns a validated understanding dict, or None (caller falls back to rules)."""
     if not available():
         return None
+    context_block = _CONTEXT_BLOCK.format(profile=user_context) if user_context else ""
+    prompt = _PROMPT.format(query=query.replace('"', "'"), context_block=context_block)
     body = {
-        "contents": [{"role": "user", "parts": [{"text": _PROMPT.format(query=query.replace('"', "'"))}]}],
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": {"responseMimeType": "application/json", "temperature": 0},
     }
     for attempt in (1, 2):  # one retry: transient 5xx happen

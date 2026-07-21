@@ -76,10 +76,22 @@ priors — no user history exists anywhere in the system.
 
 | Endpoint | Method | Description |
 |---|---|---|
-| `/assist` | POST | `{"query": str, "max_results": int}` → structured response |
-| `/health` | GET | liveness + index size |
+| `/assist` | POST | `{"query": str, "max_results": int, "user_id": str}` → structured response |
+| `/health` | GET | liveness + index size + LLM backend |
 | `/partners` | GET | partner catalog metadata |
+| `/taxonomy` | GET | per-partner category trees with product counts |
+| `/architecture` | GET | architecture diagram (HTML + SVG) |
+| `/demo-notebook` | GET | executed demo notebook (5 queries, JSON outputs) |
+| `/performance-report` | GET | executed load-test notebook with measured cost per 1000 requests |
 | `/docs` | GET | OpenAPI UI |
+
+**User context:** every query updates a per-user interest profile (percentage per
+category, from the categories of returned products). The profile is injected into the
+Gemini prompt with an explicit **30% weight** (the current query keeps 70%) to break
+ambiguity in favor of categories the user demonstrably cares about. Storage is
+in-process per instance (demo scope); `app/context.py` is the seam for
+Firestore/Memorystore in production. Rebuild the notebooks against a live deployment
+with `python scripts/build_notebooks.py --base <url>`.
 
 Response shape (see `app/schemas.py`):
 
