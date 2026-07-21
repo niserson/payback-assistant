@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PAYBACK Lightweight Assistant — Demo</title>
+<style>
+  :root {
+    --blue: #003eb0; --blue-dark: #002a78; --bg: #f4f6fb; --card: #ffffff;
+    --text: #1a2333; --muted: #5b6579; --border: #e2e7f0;
+    --dm: #0a6cbd; --edeka: #ffd500; --edeka-text: #6b5900; --amazon: #ff9900;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  h1 { font-size: 1.35rem; color: var(--blue); }
+  .sub { color: var(--muted); font-size: .9rem; margin-bottom: 18px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .chip { border: 1px solid var(--border); background: var(--card); border-radius: 999px;
+          padding: 6px 12px; font-size: .82rem; cursor: pointer; color: var(--text); }
+  .chip:hover { border-color: var(--blue); color: var(--blue); }
+  form { display: flex; gap: 8px; margin-bottom: 22px; }
+  input[type=text] { flex: 1; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
+          font-size: 1rem; background: var(--card); }
+  input[type=text]:focus { outline: 2px solid var(--blue); border-color: transparent; }
+  button[type=submit] { background: var(--blue); color: #fff; border: 0; border-radius: 10px;
+          padding: 12px 22px; font-size: 1rem; cursor: pointer; }
+  button[type=submit]:hover { background: var(--blue-dark); }
+  button[disabled] { opacity: .6; cursor: wait; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .badge { font-size: .75rem; padding: 3px 10px; border-radius: 999px; background: #eef2fb; color: var(--blue);
+          border: 1px solid #d6e0f5; }
+  .badge.action { background: #e8f7ee; color: #147a3d; border-color: #c4e9d2; }
+  .detail { color: var(--muted); font-size: .92rem; margin-bottom: 12px; }
+  .clarify { background: #fff8e6; border: 1px solid #f2e2ae; color: #6b5900; padding: 12px 14px;
+          border-radius: 10px; font-size: .95rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+  .prod { border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .prod .name { font-weight: 600; font-size: .92rem; margin-bottom: 2px; }
+  .prod .meta { color: var(--muted); font-size: .8rem; }
+  .prod .price { font-weight: 700; margin-top: 6px; }
+  .ptag { display: inline-block; font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 6px;
+          margin-bottom: 6px; text-transform: uppercase; }
+  .ptag.dm { background: #e3f0fa; color: var(--dm); }
+  .ptag.edeka { background: #fdf6cf; color: var(--edeka-text); }
+  .ptag.amazon { background: #fff0da; color: #9c5f00; }
+  details { margin-top: 14px; }
+  summary { cursor: pointer; color: var(--muted); font-size: .85rem; }
+  pre { background: #0f172a; color: #d7e3f4; border-radius: 10px; padding: 14px; overflow-x: auto;
+        font-size: .78rem; margin-top: 8px; }
+  .err { color: #b3261e; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>PAYBACK Lightweight Assistant</h1><span class="badge">demo</span></header>
+  <p class="sub">Multilingual intent detection &amp; product search across dm · EDEKA · Amazon. Try an example or type your own (Deutsch/English).</p>
+
+  <div class="chips" id="chips"></div>
+
+  <form id="form">
+    <input type="text" id="q" maxlength="500" placeholder="z.B. Bitte zeige mir Angebote für günstige Windeln" autofocus>
+    <button type="submit" id="send">Ask</button>
+  </form>
+
+  <div id="out"></div>
+</div>
+
+<script>
+const EXAMPLES = [
+  "Bitte zeige mir Angebote für günstige Windeln",
+  "I need stuff for a pasta dinner",
+  "Suche Shampoo bei dm",
+  "Was ist besser: Bio-Olivenöl oder normales Olivenöl?",
+  "Ich habe ein Problem mit meinen PAYBACK Punkten",
+  "Ich brauche ein Geschenk",
+  "something to soothe my toddler's diaper rash",
+];
+const chips = document.getElementById("chips");
+for (const ex of EXAMPLES) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "chip"; b.textContent = ex;
+  b.onclick = () => { document.getElementById("q").value = ex; ask(ex); };
+  chips.appendChild(b);
+}
+
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+document.getElementById("form").onsubmit = (e) => {
+  e.preventDefault();
+  const q = document.getElementById("q").value.trim();
+  if (q) ask(q);
+};
+
+async function ask(query) {
+  const out = document.getElementById("out");
+  const send = document.getElementById("send");
+  send.disabled = true;
+  out.innerHTML = '<div class="card detail">Thinking…</div>';
+  try {
+    const t0 = performance.now();
+    const r = await fetch("/assist", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({query}),
+    });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const d = await r.json();
+    const rtt = Math.round(performance.now() - t0);
+    let html = '<div class="card">';
+    html += '<div class="badges">'
+      + `<span class="badge">intent: ${esc(d.intent)}</span>`
+      + `<span class="badge">lang: ${esc(d.language)}</span>`
+      + `<span class="badge action">action: ${esc(d.action.type)}</span>`
+      + (d.partner_filter ? `<span class="badge">partner: ${esc(d.partner_filter)}</span>` : "")
+      + `<span class="badge">engine: ${esc(d.engine)}</span>`
+      + `<span class="badge">server ${d.latency_ms} ms · round-trip ${rtt} ms</span>`
+      + '</div>';
+    html += `<div class="detail">${esc(d.action.detail)}</div>`;
+    if (d.clarifying_question) html += `<div class="clarify">💬 ${esc(d.clarifying_question)}</div>`;
+    if (d.products.length) {
+      html += '<div class="grid">' + d.products.map(p => `
+        <div class="prod">
+          <span class="ptag ${esc(p.partner)}">${esc(p.partner)}</span>
+          <div class="name">${esc(p.name)}</div>
+          <div class="meta">${esc(p.brand)} · ${esc(p.category)} · ${esc(p.unit)}</div>
+          <div class="price">${p.price.toFixed(2)} €</div>
+        </div>`).join("") + '</div>';
+    }
+    html += `<details><summary>raw JSON</summary><pre>${esc(JSON.stringify(d, null, 2))}</pre></details>`;
+    out.innerHTML = html + '</div>';
+  } catch (err) {
+    out.innerHTML = `<div class="card err">Request failed: ${esc(err.message)}</div>`;
+  } finally {
+    send.disabled = false;
+  }
+}
+</script>
+</body>
+</html>

@@ -6,11 +6,17 @@ Decision table per the challenge:
   navigational  -> route to a partner-scoped search
   support       -> hand off to customer service
   comparison    -> retrieve candidates and present a side-by-side
+
+Hybrid understanding: deterministic rules first (~0.2 ms). Only when rules find no
+retrievable product term does the agent consult Gemini (app.llm) to paraphrase the
+need into German catalog keywords or a clarifying question — with silent fallback
+to the rule path if the LLM is unavailable.
 """
 
 import time
 from typing import Optional
 
+from . import llm
 from .intent import IntentResult, detect
 from .retrieval import BM25Index
 from .schemas import Action, AssistResponse, Product
@@ -34,12 +40,10 @@ _CLARIFY = {
     "de": {
         "default": "Kannst du das etwas eingrenzen? Suchst du z.B. Drogerie-Artikel, Lebensmittel oder etwas anderes — und bevorzugst du Bio-Marken?",
         "geschenk": "Gerne! Für wen ist das Geschenk gedacht und welches Budget hast du ungefähr?",
-        "budget": "Welches Budget schwebt dir ungefähr vor?",
     },
     "en": {
         "default": "Could you narrow that down a bit? For example: drugstore items, groceries, or something else — and do you prefer organic brands?",
         "geschenk": "Happy to help! Who is the gift for, and roughly what budget do you have in mind?",
-        "budget": "Roughly what budget do you have in mind?",
     },
 }
 
@@ -60,6 +64,23 @@ def handle(query: str, index: BM25Index, max_results: int = 5) -> AssistResponse
     start = time.perf_counter()
     result: IntentResult = detect(query, index.vocabulary())
     lang = result.language
+    engine = "rules"
+    search_query = query
+    llm_clarify: Optional[str] = None
+
+    # Escalate to the LLM only when the fast path has nothing retrievable to work with.
+    if llm.available() and not result.is_specific and result.intent in ("search", "discovery"):
+        understood = llm.classify(query)
+        if understood:
+            engine = f"rules+{llm.model_name()}@{llm.backend()}"
+            lang = understood["language"]
+            result.intent = understood["intent"]
+            result.partner = understood["partner"] or result.partner
+            if understood["search_terms"]:
+                search_query = understood["search_terms"]
+                result.is_specific = True
+            elif understood["clarifying_question"]:
+                llm_clarify = understood["clarifying_question"]
 
     products: list = []
     action: Action
@@ -69,7 +90,7 @@ def handle(query: str, index: BM25Index, max_results: int = 5) -> AssistResponse
         action = Action(type="support_handoff", detail=_SUPPORT_MSG[lang])
 
     elif result.intent == "comparison":
-        products = index.search(query, top_k=max(2, max_results))
+        products = index.search(search_query, top_k=max(2, max_results))
         detail = ("Vergleich der besten Treffer über alle Partner (Preis pro Einheit beachten)."
                   if lang == "de" else
                   "Side-by-side of the top matches across all partners (check price per unit).")
@@ -77,10 +98,14 @@ def handle(query: str, index: BM25Index, max_results: int = 5) -> AssistResponse
 
     elif result.partner is not None:
         # Navigational: partner-scoped search; with no residual terms, plain routing.
-        products = index.search(query, top_k=max_results, partner=result.partner)
+        products = index.search(search_query, top_k=max_results, partner=result.partner)
         detail = (f"Weiterleitung zur Partner-Suche: {result.partner}."
                   if lang == "de" else f"Routing to partner-specific search: {result.partner}.")
         action = Action(type="route_to_partner", detail=detail)
+
+    elif llm_clarify:
+        clarifying = llm_clarify
+        action = Action(type="clarify", detail=clarifying)
 
     elif result.intent == "discovery":
         theme = _theme_query(result.content_tokens)
@@ -95,7 +120,7 @@ def handle(query: str, index: BM25Index, max_results: int = 5) -> AssistResponse
                       "Theme basket assembled for your request across all partner catalogs.")
             action = Action(type="recommend", detail=detail)
         elif result.is_specific:
-            products = index.search(query, top_k=max_results)
+            products = index.search(search_query, top_k=max_results)
             action = Action(
                 type="recommend",
                 detail="Empfehlungen basierend auf deiner Anfrage." if lang == "de"
@@ -106,7 +131,7 @@ def handle(query: str, index: BM25Index, max_results: int = 5) -> AssistResponse
             action = Action(type="clarify", detail=clarifying)
 
     else:  # search
-        products = index.search(query, top_k=max_results)
+        products = index.search(search_query, top_k=max_results)
         if products:
             action = Action(
                 type="recommend",
@@ -127,5 +152,6 @@ def handle(query: str, index: BM25Index, max_results: int = 5) -> AssistResponse
         partner_filter=result.partner,
         products=[Product(**p) for p in products],
         clarifying_question=clarifying,
+        engine=engine,
         latency_ms=latency_ms,
     )

@@ -39,4 +39,5 @@ class AssistResponse(BaseModel):
     partner_filter: Optional[str] = None
     products: List[Product] = []
     clarifying_question: Optional[str] = None
+    engine: str = "rules"  # "rules" or "rules+<llm-model>" when the LLM assisted
     latency_ms: float

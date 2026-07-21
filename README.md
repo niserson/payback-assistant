@@ -12,6 +12,12 @@ milliseconds, and every decision is auditable. The module boundaries (`intent`,
 `retrieval`, `agent`) are clean seams where an LLM or embedding model can be swapped
 in later without touching the API contract.
 
+**Hybrid understanding:** deterministic rules answer everything they can in ~0.2 ms;
+only queries with no retrievable product term escalate to Gemini (Vertex AI on Cloud
+Run, AI Studio locally), which translates the need into German catalog keywords or a
+clarifying question — with silent fallback to rules if the LLM is unavailable. A
+built-in chat UI is served at `/`.
+
 ## Quickstart (local, no Docker needed)
 
 ```bash
@@ -108,15 +114,29 @@ docker run -p 8080:8080 payback-assistant
 
 Image: `python:3.12-slim`, non-root user, catalog baked at build time, ~60 MB compressed.
 
-## Cloud deployment (optional)
+## Cloud deployment (preferred services — deployed & verified)
 
 `scripts/deploy_cloudrun.sh <project-id> [region]` builds via Cloud Build and deploys to
-**Cloud Run** (1 vCPU / 512 MiB, scale-to-zero, concurrency 80). The service is
-stateless — the index is rebuilt from the baked catalog in <100 ms at instance start —
-so horizontal scaling is trivial. In a production evolution: catalogs land in
-**BigQuery** (with `VECTOR_SEARCH` over embedding columns for semantic retrieval), and
-the intent module is upgraded to a small instruction-tuned model on **Vertex AI**; the
-`intent`/`retrieval` seams in this codebase are exactly those replacement points.
+**Cloud Run** (1 vCPU / 512 MiB, scale-to-zero, max 3 instances, concurrency 80). The
+service is stateless — the index is rebuilt from the baked catalog in <100 ms at
+instance start — so horizontal scaling is trivial.
+
+All three preferred services are exercised:
+
+- **Cloud Run (API)** — hosts the container; serves the UI, `/assist`, `/docs`.
+- **Vertex AI (model serving)** — in the cloud the LLM path calls Gemini through the
+  Vertex AI endpoint, authenticated by the Cloud Run *service account* via the metadata
+  server (`VERTEX_PROJECT` env var; no API keys deployed). Locally, set
+  `GEMINI_API_KEY` to use AI Studio instead; with neither, the service runs rules-only.
+  Responses expose which path answered via the `engine` field
+  (`rules` vs `rules+gemini-2.5-flash-lite@vertex-ai`).
+- **BigQuery (vector search)** — `scripts/bigquery_vector_search.py --project <id> "<query>"`
+  embeds all partner catalogs with Vertex AI `text-embedding-005`, loads them into
+  `payback_assistant.products`, and runs a semantic `VECTOR_SEARCH` (cosine). Verified:
+  the query *"Ich brauche etwas gegen wunden Po bei meinem Kleinkind"* — zero keyword
+  overlap with any product — returns Feuchttücher/Windeln/Schnuller. This is the
+  production-scale retrieval path; the serving API keeps in-memory BM25 + LLM term
+  expansion, which is faster and cheaper at demo catalog size.
 
 ## Load test & cost
 

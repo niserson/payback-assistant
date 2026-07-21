@@ -9,6 +9,13 @@ from app.main import app
 from app.retrieval import BM25Index
 
 
+@pytest.fixture(autouse=True)
+def _no_llm(monkeypatch):
+    """Tests must be deterministic: force the rule path even if a key is set."""
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("VERTEX_PROJECT", raising=False)
+
+
 @pytest.fixture(scope="module")
 def index():
     return BM25Index(build_catalog())
@@ -132,3 +139,20 @@ def test_input_validation(client):
 def test_health(client):
     body = client.get("/health").json()
     assert body["status"] == "ok" and body["products"] > 0
+
+
+def test_ui_served(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "PAYBACK Lightweight Assistant" in response.text
+
+
+def test_llm_disabled_returns_none():
+    from app import llm
+    assert not llm.available()
+    assert llm.classify("anything") is None
+
+
+def test_rules_engine_marker(client):
+    body = ask(client, "günstige Windeln")
+    assert body["engine"] == "rules"

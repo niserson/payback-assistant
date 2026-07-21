@@ -2,10 +2,12 @@
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 
-from . import __version__
+from . import __version__, llm
 from .agent import handle
 from .catalog import PARTNERS, load_catalog
 from .retrieval import BM25Index
@@ -34,9 +36,22 @@ app = FastAPI(
 )
 
 
+_UI_HTML = (Path(__file__).parent / "static" / "index.html").read_text(encoding="utf-8")
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def ui() -> str:
+    return _UI_HTML
+
+
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": __version__, "products": len(_state["index"].products)}
+    return {
+        "status": "ok",
+        "version": __version__,
+        "products": len(_state["index"].products),
+        "llm": llm.model_name() if llm.available() else "disabled (rules only)",
+    }
 
 
 @app.get("/partners")

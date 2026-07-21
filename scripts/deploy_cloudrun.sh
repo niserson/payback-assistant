@@ -16,8 +16,9 @@ gcloud run deploy "$SERVICE" \
   --platform managed \
   --allow-unauthenticated \
   --cpu 1 --memory 512Mi \
-  --min-instances 0 --max-instances 10 \
-  --concurrency 80
+  --min-instances 0 --max-instances 3 \
+  --concurrency 80 \
+  --set-env-vars "VERTEX_PROJECT=$PROJECT_ID"
 
 echo "Deployed. Test with:"
 echo "  curl -X POST \"\$(gcloud run services describe $SERVICE --region $REGION --project $PROJECT_ID --format 'value(status.url)')/assist\" -H 'Content-Type: application/json' -d '{\"query\": \"günstige Windeln\"}'"
