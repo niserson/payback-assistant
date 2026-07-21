@@ -172,6 +172,14 @@ def test_ui_served(client):
     assert "PAYBACK Lightweight Assistant" in response.text
 
 
+def test_taxonomy_tree_svg(client):
+    response = client.get("/taxonomy-tree")
+    assert response.status_code == 200
+    assert "<svg" in response.text
+    assert "Baby &amp; Kind" in response.text
+    assert "PMID_" not in response.text  # all connector placeholders resolved
+
+
 def test_llm_disabled_returns_none():
     from app import llm
     assert not llm.available()

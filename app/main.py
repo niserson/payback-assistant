@@ -80,6 +80,12 @@ def architecture() -> str:
     return _static_page("architecture.html")
 
 
+@app.get("/taxonomy-tree", response_class=HTMLResponse, include_in_schema=False)
+def taxonomy_tree() -> str:
+    from .taxonomy_svg import render_page
+    return render_page()
+
+
 @app.get("/demo-notebook", response_class=HTMLResponse, include_in_schema=False)
 def demo_notebook() -> str:
     return _static_page("demo_notebook.html")
