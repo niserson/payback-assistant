@@ -194,6 +194,17 @@ def test_llm_disabled_returns_none():
     assert llm.classify("anything") is None
 
 
+def test_llm_validate_maps_compact_keys():
+    from app.llm import _validate
+    result = _validate({"i": "search", "l": "de", "p": "dm", "t": "windeln", "c": None})
+    assert result == {"intent": "search", "language": "de", "partner": "dm",
+                      "search_terms": "windeln", "clarifying_question": None}
+    # long-form keys still accepted
+    assert _validate({"intent": "search", "language": "en", "partner": None,
+                      "search_terms": "eggs", "clarifying_question": None})["search_terms"] == "eggs"
+    assert _validate({"i": "nonsense"}) is None
+
+
 def test_rules_engine_marker(client):
     body = ask(client, "günstige Windeln")
     assert body["engine"] == "rules"

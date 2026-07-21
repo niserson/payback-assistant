@@ -5,17 +5,24 @@ Two serving backends, auto-selected:
     runtime service account via the GCE/Cloud Run metadata server - no secrets.
   - AI Studio (local dev): set GEMINI_API_KEY.
 
-Cost/latency discipline: the deterministic rule path answers everything it can in
-~0.2 ms; Gemini is consulted ONLY when rules find no retrievable product term in
-the query (paraphrases, vague needs). Every failure mode (no key, timeout, 5xx,
-malformed JSON) degrades gracefully back to the rule path — the API never breaks
-because the LLM is down.
+Inference-latency engineering (measured, see /performance-report):
+  - thinkingBudget=0 for the 2.5 family: they reason by default; disabling hidden
+    thinking cut gemini-2.5-flash from ~2.9s to ~0.9s per call.
+  - Compact wire schema (single-letter keys) + maxOutputTokens cap: decode time
+    dominates, so fewer output tokens is the cheapest speedup.
+  - Compact prompt (~60% fewer input tokens than v1) with few-shot examples.
+  - Regional Vertex endpoint (europe-west4, close to the Cloud Run region) for the
+    2.5 family: ~250ms less than the global endpoint; 3.x models are global-only.
+  - Small TTL response cache: identical (query, model, context) repeats are free.
+  - Hard timeout + one retry, falling back to rules: the API never blocks on a
+    slow model.
 """
 
 import json
 import logging
 import os
 import time
+from collections import OrderedDict
 from typing import Optional
 
 import httpx
@@ -23,64 +30,45 @@ import httpx
 log = logging.getLogger("assistant.llm")
 
 _AISTUDIO_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-_VERTEX_URL = ("https://aiplatform.googleapis.com/v1/projects/{project}/locations/global/"
-               "publishers/google/models/{model}:generateContent")
+_VERTEX_GLOBAL_URL = ("https://aiplatform.googleapis.com/v1/projects/{project}/locations/global/"
+                      "publishers/google/models/{model}:generateContent")
+_VERTEX_REGIONAL_URL = ("https://{loc}-aiplatform.googleapis.com/v1/projects/{project}/locations/"
+                        "{loc}/publishers/google/models/{model}:generateContent")
 _METADATA_TOKEN_URL = ("http://metadata.google.internal/computeMetadata/v1/instance/"
                        "service-accounts/default/token")
-_TIMEOUT_S = 6.0
+_TIMEOUT_S = float(os.getenv("LLM_TIMEOUT_S", "6"))
 _INTENTS = {"search", "discovery", "comparison", "customer_support"}
 _PARTNERS = {"dm", "edeka", "amazon"}
 
-_token_cache = {"value": None, "expires": 0.0}
-
-_PROMPT = """You are the query-understanding module of a German retail loyalty app.
-Partners: dm (drugstore), EDEKA (grocery/fresh produce), Amazon (general merchandise).
-Classify the user query and reply with ONLY this JSON object:
-{{
-  "intent": "search" | "discovery" | "comparison" | "customer_support",
-  "language": "de" | "en",
-  "partner": "dm" | "edeka" | "amazon" | null,
-  "search_terms": string | null,
-  "clarifying_question": string | null
-}}
-Rules:
-- "language" is the language of the query.
-- "partner" only if the user names a shop.
-- If the query names or clearly implies concrete products, set "search_terms" to
-  short GERMAN keywords for BASE PRODUCTS a supermarket/drugstore sells (always
-  translate to German; map dishes, recipes and use-cases to their ingredients or
-  the products that fulfil them) and leave "clarifying_question" null.
-  Example: "something to soothe my toddler's diaper rash" -> "wundschutz creme baby"
-  Example: "spiegelei fürs frühstück" -> "eier butter frühstück"
-  Example: "pancakes for the kids" -> "mehl eier milch zucker" (ingredients, not the
-  dish; drop audience words like kids/Kinder unless the product itself is for them)
-  Example: "was fürs Grillfest am Samstag" -> "bratwurst grillen"
-- A shopping LIST (several items separated by commas or und/and) is ALWAYS specific:
-  translate every item into German base-product keywords; never ask for clarification.
-- If the need is genuinely too vague to search, set "search_terms" null and ask ONE
-  short clarifying question in the query's language.
-{context_block}Query: "{query}"
-"""
-
-_CONTEXT_BLOCK = """User interest profile from past queries (category: percentage): {profile}.
-Weight this profile at ~30 percent versus the current query text at ~70 percent:
-- If the query is AMBIGUOUS or VAGUE and the profile has dominant categories, RESOLVE it
-  toward those categories: produce German search_terms fitting them instead of asking a
-  clarifying question.
-  Example: profile "Baby & Kind 80%" + query "creme" -> "wundschutz creme baby"
-  Example: profile "Sport & Fitness 70%, Outdoor & Reisen 25%" + query
-  "was für draußen am Wochenende" -> "campingstuhl rucksack trinkflasche"
-- If the query is explicit, follow it — never let the profile contradict stated intent.
-"""
-
-
-# Validated against the Vertex AI global endpoint (2.0-flash* are not served there).
+# Validated against Vertex AI (2.0-flash* are not served there; 3.x are global-only).
 ALLOWED_MODELS = (
     "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
     "gemini-3.1-flash-lite",
     "gemini-3.5-flash",
 )
+
+_token_cache = {"value": None, "expires": 0.0}
+
+# TTL response cache: repeated (model, query, context) calls skip inference entirely.
+_CACHE_TTL_S = 300
+_CACHE_MAX = 512
+_response_cache: "OrderedDict[tuple, tuple]" = OrderedDict()
+
+# Compact wire schema: single-letter keys keep decode short; mapped back to full
+# field names in _validate so callers never see the wire format.
+_PROMPT = """You classify retail queries for a German loyalty app. Partners: dm (drugstore), edeka (grocery), amazon (general merchandise).
+Reply ONLY with JSON (use JSON null, never the string "null"): {{"i":"search|discovery|comparison|customer_support","l":"de|en","p":"dm|edeka|amazon"|null,"t":"German search keywords"|null,"c":"clarifying question"|null}}
+Rules:
+- l = language of the query. p only if the user names a shop.
+- If concrete products are implied, t = short GERMAN base-product keywords (always translate; map dishes/use-cases to supermarket products; drop audience words). Ex: "spiegelei fürs frühstück"->"eier butter frühstück"; "pancakes for the kids"->"mehl eier milch zucker".
+- Shopping lists (items joined by commas/und/and) are always specific.
+- Only if truly vague: t = null, c = ONE short question in the query's language.
+{context_block}Query: "{query}"
+"""
+
+_CONTEXT_BLOCK = """User interests (weight ~30% vs query 70%): {profile}. Resolve vague queries toward dominant categories, e.g. "Baby & Kind 80%"+"creme"->"wundschutz creme baby"; "Sport & Fitness 70%"+"was für draußen"->"campingstuhl rucksack trinkflasche". Never contradict explicit intent.
+"""
 
 
 def backend() -> Optional[str]:
@@ -114,14 +102,33 @@ def _metadata_token() -> str:
     return _token_cache["value"]
 
 
+def _vertex_url(model: str) -> str:
+    project = os.environ["VERTEX_PROJECT"]
+    location = os.getenv("VERTEX_LOCATION", "europe-west4")
+    # 2.5 family is served regionally (lower RTT from Cloud Run); 3.x is global-only.
+    if model.startswith("gemini-2.5") and location != "global":
+        return _VERTEX_REGIONAL_URL.format(project=project, model=model, loc=location)
+    return _VERTEX_GLOBAL_URL.format(project=project, model=model)
+
+
 def _request(body: dict, model: Optional[str] = None) -> httpx.Response:
+    resolved = model_name(model)
     if backend() == "vertex-ai":
-        url = _VERTEX_URL.format(project=os.environ["VERTEX_PROJECT"], model=model_name(model))
+        url = _vertex_url(resolved)
         headers = {"Authorization": f"Bearer {_metadata_token()}"}
     else:
-        url = _AISTUDIO_URL.format(model=model_name(model))
+        url = _AISTUDIO_URL.format(model=resolved)
         headers = {"x-goog-api-key": os.environ["GEMINI_API_KEY"]}
     return httpx.post(url, headers=headers, json=body, timeout=_TIMEOUT_S)
+
+
+def _generation_config(model: str) -> dict:
+    config = {"responseMimeType": "application/json", "temperature": 0, "maxOutputTokens": 96}
+    if model.startswith("gemini-2.5"):
+        # 2.5 models spend hidden reasoning tokens by default — measured ~2s extra
+        # on gemini-2.5-flash. Classification needs none of it.
+        config["thinkingConfig"] = {"thinkingBudget": 0}
+    return config
 
 
 def classify(query: str, user_context: Optional[str] = None,
@@ -129,11 +136,19 @@ def classify(query: str, user_context: Optional[str] = None,
     """Returns a validated understanding dict, or None (caller falls back to rules)."""
     if not available():
         return None
+    resolved = model_name(model)
+    cache_key = (resolved, query.strip().lower(), user_context or "")
+    now = time.time()
+    cached = _response_cache.get(cache_key)
+    if cached and now - cached[0] < _CACHE_TTL_S:
+        _response_cache.move_to_end(cache_key)
+        return dict(cached[1]) if cached[1] else None
+
     context_block = _CONTEXT_BLOCK.format(profile=user_context) if user_context else ""
     prompt = _PROMPT.format(query=query.replace('"', "'"), context_block=context_block)
     body = {
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"responseMimeType": "application/json", "temperature": 0},
+        "generationConfig": _generation_config(resolved),
     }
     for attempt in (1, 2):  # one retry: transient 5xx happen
         try:
@@ -143,7 +158,11 @@ def classify(query: str, user_context: Optional[str] = None,
                 continue
             response.raise_for_status()
             text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
-            return _validate(json.loads(text))
+            result = _validate(json.loads(text))
+            _response_cache[cache_key] = (now, dict(result) if result else None)
+            while len(_response_cache) > _CACHE_MAX:
+                _response_cache.popitem(last=False)
+            return result
         except Exception as exc:  # noqa: BLE001 — any LLM failure must not break the API
             if attempt == 2:
                 log.warning("gemini unavailable, falling back to rules: %s", exc)
@@ -153,17 +172,29 @@ def classify(query: str, user_context: Optional[str] = None,
 
 
 def _validate(data: dict) -> Optional[dict]:
-    if not isinstance(data, dict) or data.get("intent") not in _INTENTS:
+    if not isinstance(data, dict):
         return None
-    if data.get("language") not in ("de", "en"):
-        data["language"] = "de"
-    if data.get("partner") not in _PARTNERS:
-        data["partner"] = None
+    # Map compact wire keys to the stable field names callers use.
+    mapped = {
+        "intent": data.get("i", data.get("intent")),
+        "language": data.get("l", data.get("language")),
+        "partner": data.get("p", data.get("partner")),
+        "search_terms": data.get("t", data.get("search_terms")),
+        "clarifying_question": data.get("c", data.get("clarifying_question")),
+    }
+    if mapped["intent"] not in _INTENTS:
+        return None
+    if mapped["language"] not in ("de", "en"):
+        mapped["language"] = "de"
+    if mapped["partner"] not in _PARTNERS:
+        mapped["partner"] = None
     for field in ("search_terms", "clarifying_question"):
-        value = data.get(field)
-        data[field] = value.strip() if isinstance(value, str) and value.strip() else None
-    if not data["search_terms"] and not data["clarifying_question"] and data["intent"] not in (
+        value = mapped[field]
+        cleaned = value.strip() if isinstance(value, str) else None
+        # models occasionally emit the STRING "null"/"none" instead of JSON null
+        mapped[field] = None if not cleaned or cleaned.lower() in ("null", "none") else cleaned
+    if not mapped["search_terms"] and not mapped["clarifying_question"] and mapped["intent"] not in (
         "customer_support",
     ):
         return None  # nothing actionable came back
-    return data
+    return mapped
