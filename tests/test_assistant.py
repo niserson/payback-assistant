@@ -105,6 +105,14 @@ def test_shopping_list_returns_products(client):
     assert "kuchen" in names
 
 
+def test_interest_rank_boost(index):
+    # Same ambiguous query, different profiles -> the favored category rises to #1.
+    korper = index.search("creme", interests={"Körperpflege": 100.0})
+    sonne = index.search("creme", interests={"Sonnenschutz": 100.0})
+    assert korper[0]["category"] == "Körperpflege"
+    assert sonne[0]["category"] == "Sonnenschutz"
+
+
 def test_partner_scoping(index):
     hits = index.search("Shampoo", partner="dm")
     assert hits and all(h["partner"] == "dm" for h in hits)

@@ -7796,17 +7796,23 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e99f1289">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3e4ceda9">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="PAYBACK-Lightweight-Assistant-%E2%80%94-Performance-Report">PAYBACK Lightweight Assistant — Performance Report<a class="anchor-link" href="#PAYBACK-Lightweight-Assistant-%E2%80%94-Performance-Report">¶</a></h1><p>Load test against the live Cloud Run deployment <code>https://payback-assistant-506488371374.europe-west3.run.app</code> (1 vCPU / 512 MiB per instance, scale-to-zero, max 3 instances, concurrency 80).</p>
+<h1 id="Cold-Start-vs.-User-Context-Influenced-Recommendations">Cold Start vs. User-Context-Influenced Recommendations<a class="anchor-link" href="#Cold-Start-vs.-User-Context-Influenced-Recommendations">¶</a></h1><p>Live comparison against <code>https://payback-assistant-506488371374.europe-west3.run.app</code>: the <strong>same ambiguous queries</strong> are answered for</p>
+<ol>
+<li>a <strong>cold-start user</strong> (no history — ranking relies solely on query context + global popularity),</li>
+<li>a <strong>baby-parent persona</strong> (profile built from baby queries),</li>
+<li>a <strong>fitness persona</strong> (profile built from sport queries).</li>
+</ol>
+<p>All runs use <code>llm_mode: always</code> and the same model, so the ONLY variable is the user-interest profile injected into the Gemini prompt at <strong>30% weight</strong> (the query text keeps 70%).</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=7d9db4b5">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=5aefe845">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7814,33 +7820,27 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">statistics</span><span class="o">,</span><span class="w"> </span><span class="nn">time</span><span class="o">,</span><span class="w"> </span><span class="nn">requests</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">uuid</span><span class="o">,</span><span class="w"> </span><span class="nn">requests</span>
 <span class="n">BASE</span> <span class="o">=</span> <span class="s1">'https://payback-assistant-506488371374.europe-west3.run.app'</span>
-<span class="n">QUERIES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'günstige Windeln'</span><span class="p">,</span> <span class="s1">'Suche Shampoo bei dm'</span><span class="p">,</span> <span class="s1">'pasta tomaten parmesan'</span><span class="p">,</span>
-           <span class="s1">'Schokolade und Chips'</span><span class="p">,</span> <span class="s1">'Mineralwasser 6er'</span><span class="p">]</span>  <span class="c1"># rules path = steady-state hot path</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">run_load</span><span class="p">(</span><span class="n">n_requests</span><span class="p">,</span> <span class="n">concurrency</span><span class="p">):</span>
-    <span class="n">latencies</span><span class="p">,</span> <span class="n">errors</span> <span class="o">=</span> <span class="p">[],</span> <span class="mi">0</span>
-    <span class="n">session</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">one</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
-        <span class="k">nonlocal</span> <span class="n">errors</span>
-        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">r</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">BASE</span><span class="si">}</span><span class="s1">/assist'</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s1">'query'</span><span class="p">:</span> <span class="n">QUERIES</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">QUERIES</span><span class="p">)]},</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
-            <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-            <span class="n">latencies</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-            <span class="n">errors</span> <span class="o">+=</span> <span class="mi">1</span>
-    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-    <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">concurrency</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
-        <span class="nb">list</span><span class="p">(</span><span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">one</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_requests</span><span class="p">)))</span>
-    <span class="n">wall</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
-    <span class="n">latencies</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">latencies</span><span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">latencies</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">q</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">latencies</span><span class="p">)))]</span>
-    <span class="k">return</span> <span class="p">{</span><span class="s1">'requests'</span><span class="p">:</span> <span class="n">n_requests</span><span class="p">,</span> <span class="s1">'concurrency'</span><span class="p">:</span> <span class="n">concurrency</span><span class="p">,</span> <span class="s1">'errors'</span><span class="p">:</span> <span class="n">errors</span><span class="p">,</span>
-            <span class="s1">'wall_s'</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">wall</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="s1">'rps'</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">latencies</span><span class="p">)</span> <span class="o">/</span> <span class="n">wall</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-            <span class="s1">'p50_ms'</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="p">(</span><span class="mf">.5</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="s1">'p95_ms'</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="p">(</span><span class="mf">.95</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="s1">'p99_ms'</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="p">(</span><span class="mf">.99</span><span class="p">),</span> <span class="mi">1</span><span class="p">)}</span>
-<span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">BASE</span><span class="si">}</span><span class="s1">/health'</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>  <span class="c1"># warm the instance</span>
+<span class="c1"># One cookie session per persona: Cloud Run session affinity pins each persona</span>
+<span class="c1"># to one instance, so the in-process context store sees all of its queries.</span>
+<span class="n">SESSIONS</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">ask</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">SESSIONS</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">())</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">BASE</span><span class="si">}</span><span class="s1">/assist'</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s1">'query'</span><span class="p">:</span> <span class="n">query</span><span class="p">,</span> <span class="s1">'user_id'</span><span class="p">:</span> <span class="n">user_id</span><span class="p">,</span>
+                      <span class="s1">'llm_mode'</span><span class="p">:</span> <span class="s1">'always'</span><span class="p">},</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+    <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+        <span class="n">tops</span> <span class="o">=</span> <span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span><span class="si">}</span><span class="s2"> [</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">'category'</span><span class="p">]</span><span class="si">}</span><span class="s2">]"</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s1">'products'</span><span class="p">][:</span><span class="mi">3</span><span class="p">])</span> <span class="ow">or</span> <span class="s1">'(no products)'</span>
+        <span class="n">extra</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">" | clarify: </span><span class="si">{</span><span class="n">d</span><span class="p">[</span><span class="s1">'clarifying_question'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">d</span><span class="p">[</span><span class="s1">'clarifying_question'</span><span class="p">]</span> <span class="k">else</span> <span class="s1">''</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'  </span><span class="si">{</span><span class="n">query</span><span class="si">!r:</span><span class="s1">44</span><span class="si">}</span><span class="s1"> -&gt; </span><span class="si">{</span><span class="n">tops</span><span class="si">}{</span><span class="n">extra</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">d</span>
+<span class="c1"># fresh ids per run so the in-process context store starts clean</span>
+<span class="n">COLD</span><span class="p">,</span> <span class="n">BABY</span><span class="p">,</span> <span class="n">FIT</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span><span class="si">}</span><span class="s1">'</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'cold'</span><span class="p">,</span> <span class="s1">'baby'</span><span class="p">,</span> <span class="s1">'fit'</span><span class="p">))</span>
+<span class="n">TEST_QUERIES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'etwas für unterwegs'</span><span class="p">,</span> <span class="s1">'ein kleines Geschenk'</span><span class="p">,</span> <span class="s1">'creme'</span><span class="p">,</span>
+                <span class="s1">'was für den Sonntagmorgen'</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'service:'</span><span class="p">,</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">BASE</span><span class="si">}</span><span class="s1">/health'</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
 </pre></div>
 </div>
 </div>
@@ -7850,29 +7850,27 @@ a.anchor-link {
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
 <div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child jp-OutputArea-executeResult">
-<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[1]:</div>
-<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain" tabindex="0">
-<pre>{'status': 'ok',
- 'version': '1.0.0',
- 'products': 97,
- 'llm': 'gemini-2.5-flash-lite'}</pre>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>service: {'status': 'ok', 'version': '1.0.0', 'products': 97, 'llm': 'gemini-2.5-flash-lite'}
+</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=03c818c6">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9936af10">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Scaling-proof:-throughput-grows-with-concurrency,-tail-latency-stays-bounded">Scaling proof: throughput grows with concurrency, tail latency stays bounded<a class="anchor-link" href="#Scaling-proof:-throughput-grows-with-concurrency,-tail-latency-stays-bounded">¶</a></h2>
+<h2 id="1-%E2%80%94-Cold-start:-no-history,-query-context-only">1 — Cold start: no history, query context only<a class="anchor-link" href="#1-%E2%80%94-Cold-start:-no-history,-query-context-only">¶</a></h2><p>The system is cold-start-safe <strong>by design</strong>: ranking uses only the query plus a global popularity prior; the LLM prompt contains no profile block.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=387b68c7">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f122bea7">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7880,9 +7878,8 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">run_load</span><span class="p">(</span><span class="mi">150</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">40</span><span class="p">)]</span>
-<span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">TEST_QUERIES</span><span class="p">:</span>
+    <span class="n">ask</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">COLD</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -7895,26 +7892,45 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{'requests': 150, 'concurrency': 5, 'errors': 0, 'wall_s': 4.7, 'rps': 31.9, 'p50_ms': 138.3, 'p95_ms': 153.0, 'p99_ms': 621.5}
-{'requests': 150, 'concurrency': 20, 'errors': 0, 'wall_s': 2.62, 'rps': 57.2, 'p50_ms': 152.5, 'p95_ms': 1530.6, 'p99_ms': 1544.9}
-{'requests': 150, 'concurrency': 40, 'errors': 0, 'wall_s': 3.15, 'rps': 47.7, 'p50_ms': 144.1, 'p95_ms': 2794.5, 'p99_ms': 2826.1}
+<pre>  'etwas für unterwegs'                        -&gt; (no products) | clarify: Was für unterwegs suchst du denn?
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'ein kleines Geschenk'                       -&gt; (no products) | clarify: Für wen oder welchen Anlass ist das Geschenk?
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'creme'                                      -&gt; After Sun Lotion [Sonnenschutz], Handcreme Kamille [Körperpflege], Bodylotion Urea [Körperpflege]
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'was für den Sonntagmorgen'                  -&gt; Knuspermüsli Schoko [Frühstück], Bio-Honig [Frühstück], Milchaufschäumer elektrisch [Küche &amp; Haushaltsgeräte]
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9ede42bc">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ed070300">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="LLM-model-tiers:-server-side-latency-per-Gemini-model">LLM model tiers: server-side latency per Gemini model<a class="anchor-link" href="#LLM-model-tiers:-server-side-latency-per-Gemini-model">¶</a></h2><p>Same paraphrase queries, <code>llm_mode: always</code>, measured via the response's own <code>latency_ms</code> (server-side handler time incl. the Vertex AI call — network round-trip to the client excluded). Escalated-path latency is dominated by model inference, so this is a direct tier comparison.</p>
+<h2 id="2-%E2%80%94-Build-the-personas-(seed-queries-recorded-into-each-profile)">2 — Build the personas (seed queries recorded into each profile)<a class="anchor-link" href="#2-%E2%80%94-Build-the-personas-(seed-queries-recorded-into-each-profile)">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=be558d4b">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8c15d3d1">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7922,19 +7938,13 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">MODELS</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'gemini-2.5-flash-lite'</span><span class="p">,</span> <span class="s1">'gemini-2.5-flash'</span><span class="p">,</span> <span class="s1">'gemini-3.1-flash-lite'</span><span class="p">,</span> <span class="s1">'gemini-3.5-flash'</span><span class="p">]</span>
-<span class="n">PARAPHRASES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'etwas gegen wunden Po beim Kleinkind'</span><span class="p">,</span> <span class="s1">'pancakes for the kids'</span><span class="p">,</span>
-               <span class="s1">'was Schönes zum Naschen'</span><span class="p">,</span> <span class="s1">'stuff for taco night'</span><span class="p">,</span> <span class="s1">'spiegelei fürs frühstück'</span><span class="p">,</span>
-               <span class="s1">'something for a rainy sunday afternoon'</span><span class="p">]</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'model'</span><span class="si">:</span><span class="s2">26</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'p50 ms'</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'p95 ms'</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'mean ms'</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2">  engine sample"</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">MODELS</span><span class="p">:</span>
-    <span class="n">lats</span><span class="p">,</span> <span class="n">engine</span> <span class="o">=</span> <span class="p">[],</span> <span class="s1">''</span>
-    <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">PARAPHRASES</span><span class="p">:</span>
-        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">BASE</span><span class="si">}</span><span class="s1">/assist'</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s1">'query'</span><span class="p">:</span> <span class="n">q</span><span class="p">,</span> <span class="s1">'llm_mode'</span><span class="p">:</span> <span class="s1">'always'</span><span class="p">,</span>
-                          <span class="s1">'model'</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="s1">'user_id'</span><span class="p">:</span> <span class="sa">f</span><span class="s1">'tier-</span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s1">'</span><span class="p">},</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
-        <span class="n">lats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">'latency_ms'</span><span class="p">]);</span> <span class="n">engine</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s1">'engine'</span><span class="p">]</span>
-    <span class="n">lats</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">m</span><span class="si">:</span><span class="s1">26</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">lats</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">lats</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="p">]</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">lats</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">statistics</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">lats</span><span class="p">)</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1">  </span><span class="si">{</span><span class="n">engine</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'Windeln'</span><span class="p">,</span> <span class="s1">'Schnuller und Feuchttücher'</span><span class="p">,</span> <span class="s1">'Babybrei'</span><span class="p">):</span>
+    <span class="n">ask</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">BABY</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'Yogamatte'</span><span class="p">,</span> <span class="s1">'Fitness Tracker'</span><span class="p">,</span> <span class="s1">'Springseil'</span><span class="p">):</span>
+    <span class="n">ask</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">FIT</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">profile</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">uid</span><span class="p">:</span> <span class="n">ask</span><span class="p">(</span><span class="s1">'Windeln'</span> <span class="k">if</span> <span class="n">uid</span> <span class="o">==</span> <span class="n">BABY</span> <span class="k">else</span> <span class="s1">'Yogamatte'</span><span class="p">,</span> <span class="n">uid</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="s1">'user_context'</span><span class="p">][</span><span class="s1">'interests'</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'baby persona profile   :'</span><span class="p">,</span> <span class="n">profile</span><span class="p">(</span><span class="n">BABY</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'fitness persona profile:'</span><span class="p">,</span> <span class="n">profile</span><span class="p">(</span><span class="n">FIT</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -7947,52 +7957,31 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>model                        p50 ms   p95 ms  mean ms  engine sample
+<pre>baby persona profile   : {'Baby &amp; Kind': 100.0}
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>gemini-2.5-flash-lite           731      862      715  rules+gemini-2.5-flash-lite@vertex-ai
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>gemini-2.5-flash               3314     5786     3444  rules+gemini-2.5-flash@vertex-ai
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>gemini-3.1-flash-lite           915     1040      856  rules+gemini-3.1-flash-lite@vertex-ai
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>gemini-3.5-flash              12360    12374     9433  rules
+<pre>fitness persona profile: {'Sport &amp; Fitness': 100.0}
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=bb83b195">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=75f77afd">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Cost-per-1000-requests-(measured,-Cloud-Run-request-based-billing)">Cost per 1000 requests (measured, Cloud Run request-based billing)<a class="anchor-link" href="#Cost-per-1000-requests-(measured,-Cloud-Run-request-based-billing)">¶</a></h2><p>vCPU $0.000024/s + memory $0.0000025/GiB·s billed only while serving, plus $0.40 per million requests. LLM-escalated requests add Gemini 2.5 Flash-Lite on Vertex AI (~$0.10/M input + $0.40/M output tokens; ~700 in / 60 out per call).</p>
+<h2 id="3-%E2%80%94-Same-queries,-baby-parent-context-(30%25-weight)">3 — Same queries, baby-parent context (30% weight)<a class="anchor-link" href="#3-%E2%80%94-Same-queries,-baby-parent-context-(30%25-weight)">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=78770bd7">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f786fa7b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8000,13 +7989,8 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">best</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s1">'rps'</span><span class="p">])</span>
-<span class="n">per_req_s</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">best</span><span class="p">[</span><span class="s1">'rps'</span><span class="p">]</span>
-<span class="n">infra</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.000024</span> <span class="o">+</span> <span class="mf">0.0000025</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">per_req_s</span> <span class="o">+</span> <span class="mf">0.40</span> <span class="o">/</span> <span class="mi">1_000_000</span>
-<span class="n">llm_call</span> <span class="o">=</span> <span class="mi">700</span> <span class="o">/</span> <span class="mf">1e6</span> <span class="o">*</span> <span class="mf">0.10</span> <span class="o">+</span> <span class="mi">60</span> <span class="o">/</span> <span class="mf">1e6</span> <span class="o">*</span> <span class="mf">0.40</span>   <span class="c1"># per escalated call</span>
-<span class="k">for</span> <span class="n">esc</span> <span class="ow">in</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.10</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">):</span>
-    <span class="n">total</span> <span class="o">=</span> <span class="p">(</span><span class="n">infra</span> <span class="o">+</span> <span class="n">esc</span> <span class="o">*</span> <span class="n">llm_call</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'cost per 1000 requests at </span><span class="si">{</span><span class="n">esc</span><span class="si">:</span><span class="s1">.0%</span><span class="si">}</span><span class="s1"> LLM escalation: $</span><span class="si">{</span><span class="n">total</span><span class="si">:</span><span class="s1">.4f</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">TEST_QUERIES</span><span class="p">:</span>
+    <span class="n">ask</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">BABY</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -8019,22 +8003,101 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>cost per 1000 requests at 0% LLM escalation: $0.0008
-cost per 1000 requests at 10% LLM escalation: $0.0102
-cost per 1000 requests at 25% LLM escalation: $0.0243
+<pre>  'etwas für unterwegs'                        -&gt; Kartoffelchips Paprika [Süßigkeiten &amp; Snacks], Mineralwasser Classic 6er [Getränke], Orangensaft Direktsaft [Getränke]
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'ein kleines Geschenk'                       -&gt; (no products) | clarify: Was für ein Geschenk suchen Sie denn?
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'creme'                                      -&gt; Feuchttücher Sensitiv [Baby &amp; Kind], After Sun Lotion [Sonnenschutz], Babybrei Pastinake [Baby &amp; Kind]
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'was für den Sonntagmorgen'                  -&gt; Milchaufschäumer elektrisch [Küche &amp; Haushaltsgeräte], Röstkaffee ganze Bohne [Getränke]
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a67d93af">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=edf90c64">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="How-prompt/inference-time-was-optimized">How prompt/inference time was optimized<a class="anchor-link" href="#How-prompt/inference-time-was-optimized">¶</a></h2><p>Latency was minimized by <strong>removing inference from the hot path rather than optimizing it</strong>: deterministic lexicon rules + a concept-grouped BM25 index answer every query whose vocabulary is known in ~1–2 ms server-side, so the p50 above is pure network + HTTP. The LLM (Gemini 2.5 Flash-Lite — the smallest, fastest tier) is called <strong>only</strong> when the query contains tokens unknown to the index, which empirically is a small fraction of retail traffic; every miss that recurs can be promoted into the synonym lexicon, shrinking the escalation rate over time. The prompt itself is optimized for speed: a single compact instruction block, few-shot examples instead of long specifications, <code>responseMimeType: application/json</code> to eliminate parsing retries, temperature 0, and a hard 6 s timeout with one retry falling back to the rules answer — the API never blocks on the LLM. The user-context profile is injected as one short line (top-5 categories, 30% weight) rather than raw history, keeping input tokens ~700 per escalated call. Serving-side, the index is built once at startup from a catalog baked into the image (no cold-start I/O), the service is stateless, and Cloud Run fans out to 3 instances × concurrency 80.</p>
+<h2 id="4-%E2%80%94-Same-queries,-fitness-context-(30%25-weight)">4 — Same queries, fitness context (30% weight)<a class="anchor-link" href="#4-%E2%80%94-Same-queries,-fitness-context-(30%25-weight)">¶</a></h2>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=92d607c1">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">TEST_QUERIES</span><span class="p">:</span>
+    <span class="n">ask</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">FIT</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'etwas für unterwegs'                        -&gt; (no products) | clarify: Was für unterwegs suchst du denn?
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'ein kleines Geschenk'                       -&gt; (no products) | clarify: Für wen oder welchen Anlass suchen Sie ein Geschenk?
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'creme'                                      -&gt; After Sun Lotion [Sonnenschutz], Handcreme Kamille [Körperpflege], Bodylotion Urea [Körperpflege]
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>  'was für den Sonntagmorgen'                  -&gt; Milchaufschäumer elektrisch [Küche &amp; Haushaltsgeräte], Röstkaffee ganze Bohne [Getränke]
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=336db96a">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="What-this-shows">What this shows<a class="anchor-link" href="#What-this-shows">¶</a></h2><p>The 30% context weight acts at <strong>two layers</strong>: (1) the profile enters the Gemini prompt, so a vague query is <em>resolved</em> toward the user's dominant categories instead of triggering a clarifying question (cold start clarifies, personas get products); (2) retrieval multiplies each product's relevance score by <code>1 + 0.3 × interest-share</code> for its category, so favored categories win near-ties in the ranking. Unambiguous queries are unaffected — the prompt forbids the profile from contradicting explicit intent, and a 1.3× cap cannot overturn a clear relevance gap. Cold start degrades gracefully to query-only relevance plus global popularity, which is exactly the challenge's cold-start constraint: user history is never <em>required</em>, it only sharpens ambiguity when present. (Profiles are seeded live moments earlier, so persona outputs can vary slightly run-to-run.)</p>
 </div>
 </div>
 </div>

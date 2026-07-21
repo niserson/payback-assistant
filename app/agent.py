@@ -68,6 +68,9 @@ def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "a
     engine = "rules"
     search_query = query
     llm_clarify: Optional[str] = None
+    # Interest profile BEFORE this query: 30% weight in the LLM prompt and as a
+    # category rank boost in retrieval.
+    profile = context.interests(user_id) or None
 
     # auto: escalate to the LLM when the fast path can't fully parse the query —
     # nothing retrievable, or some content tokens unknown to the index (e.g.
@@ -97,7 +100,7 @@ def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "a
         action = Action(type="support_handoff", detail=_SUPPORT_MSG[lang])
 
     elif result.intent == "comparison":
-        products = index.search(search_query, top_k=max(2, max_results))
+        products = index.search(search_query, top_k=max(2, max_results), interests=profile)
         detail = ("Vergleich der besten Treffer über alle Partner (Preis pro Einheit beachten)."
                   if lang == "de" else
                   "Side-by-side of the top matches across all partners (check price per unit).")
@@ -105,7 +108,8 @@ def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "a
 
     elif result.partner is not None:
         # Navigational: partner-scoped search; with no residual terms, plain routing.
-        products = index.search(search_query, top_k=max_results, partner=result.partner)
+        products = index.search(search_query, top_k=max_results, partner=result.partner,
+                                interests=profile)
         detail = (f"Weiterleitung zur Partner-Suche: {result.partner}."
                   if lang == "de" else f"Routing to partner-specific search: {result.partner}.")
         action = Action(type="route_to_partner", detail=detail)
@@ -121,13 +125,13 @@ def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "a
             clarifying = _CLARIFY[lang]["geschenk"]
             action = Action(type="clarify", detail=clarifying)
         elif theme:
-            products = index.search(theme, top_k=max_results)
+            products = index.search(theme, top_k=max_results, interests=profile)
             detail = ("Themen-Warenkorb passend zu deiner Anfrage, partnerübergreifend zusammengestellt."
                       if lang == "de" else
                       "Theme basket assembled for your request across all partner catalogs.")
             action = Action(type="recommend", detail=detail)
         elif result.is_specific:
-            products = index.search(search_query, top_k=max_results)
+            products = index.search(search_query, top_k=max_results, interests=profile)
             action = Action(
                 type="recommend",
                 detail="Empfehlungen basierend auf deiner Anfrage." if lang == "de"
@@ -138,7 +142,7 @@ def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "a
             action = Action(type="clarify", detail=clarifying)
 
     else:  # search
-        products = index.search(search_query, top_k=max_results)
+        products = index.search(search_query, top_k=max_results, interests=profile)
         if products:
             action = Action(
                 type="recommend",

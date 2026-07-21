@@ -61,6 +61,74 @@ def demo_notebook(base: str) -> nbf.NotebookNode:
     return nb
 
 
+def coldstart_notebook(base: str) -> nbf.NotebookNode:
+    nb = nbf.v4.new_notebook()
+    nb.cells = [
+        md("# Cold Start vs. User-Context-Influenced Recommendations\n"
+           f"Live comparison against `{base}`: the **same ambiguous queries** are answered for\n"
+           "1. a **cold-start user** (no history — ranking relies solely on query context + global popularity),\n"
+           "2. a **baby-parent persona** (profile built from baby queries),\n"
+           "3. a **fitness persona** (profile built from sport queries).\n\n"
+           "All runs use `llm_mode: always` and the same model, so the ONLY variable is the "
+           "user-interest profile injected into the Gemini prompt at **30% weight** "
+           "(the query text keeps 70%)."),
+        code("import json, uuid, requests\n"
+             f"BASE = {base!r}\n"
+             "# One cookie session per persona: Cloud Run session affinity pins each persona\n"
+             "# to one instance, so the in-process context store sees all of its queries.\n"
+             "SESSIONS = {}\n"
+             "def ask(query, user_id, show=True):\n"
+             "    s = SESSIONS.setdefault(user_id, requests.Session())\n"
+             "    r = s.post(f'{BASE}/assist', json={'query': query, 'user_id': user_id,\n"
+             "                      'llm_mode': 'always'}, timeout=60)\n"
+             "    r.raise_for_status()\n"
+             "    d = r.json()\n"
+             "    if show:\n"
+             "        tops = ', '.join(f\"{p['name']} [{p['category']}]\" for p in d['products'][:3]) or '(no products)'\n"
+             "        extra = f\" | clarify: {d['clarifying_question']}\" if d['clarifying_question'] else ''\n"
+             "        print(f'  {query!r:44} -> {tops}{extra}')\n"
+             "    return d\n"
+             "# fresh ids per run so the in-process context store starts clean\n"
+             "COLD, BABY, FIT = (f'{p}-{uuid.uuid4().hex[:8]}' for p in ('cold', 'baby', 'fit'))\n"
+             "TEST_QUERIES = ['etwas für unterwegs', 'ein kleines Geschenk', 'creme',\n"
+             "                'was für den Sonntagmorgen']\n"
+             "print('service:', requests.get(f'{BASE}/health', timeout=30).json())"),
+        md("## 1 — Cold start: no history, query context only\n"
+           "The system is cold-start-safe **by design**: ranking uses only the query plus a "
+           "global popularity prior; the LLM prompt contains no profile block."),
+        code("for q in TEST_QUERIES:\n"
+             "    ask(q, COLD)"),
+        md("## 2 — Build the personas (seed queries recorded into each profile)"),
+        code("for q in ('Windeln', 'Schnuller und Feuchttücher', 'Babybrei'):\n"
+             "    ask(q, BABY, show=False)\n"
+             "for q in ('Yogamatte', 'Fitness Tracker', 'Springseil'):\n"
+             "    ask(q, FIT, show=False)\n"
+             "profile = lambda uid: ask('Windeln' if uid == BABY else 'Yogamatte', uid, show=False)['user_context']['interests']\n"
+             "print('baby persona profile   :', profile(BABY))\n"
+             "print('fitness persona profile:', profile(FIT))"),
+        md("## 3 — Same queries, baby-parent context (30% weight)"),
+        code("for q in TEST_QUERIES:\n"
+             "    ask(q, BABY)"),
+        md("## 4 — Same queries, fitness context (30% weight)"),
+        code("for q in TEST_QUERIES:\n"
+             "    ask(q, FIT)"),
+        md("## What this shows\n"
+           "The 30% context weight acts at **two layers**: (1) the profile enters the Gemini "
+           "prompt, so a vague query is *resolved* toward the user's dominant categories "
+           "instead of triggering a clarifying question (cold start clarifies, personas get "
+           "products); (2) retrieval multiplies each product's relevance score by "
+           "`1 + 0.3 × interest-share` for its category, so favored categories win near-ties "
+           "in the ranking. Unambiguous queries are unaffected — the prompt forbids the "
+           "profile from contradicting explicit intent, and a 1.3× cap cannot overturn a "
+           "clear relevance gap. Cold start degrades gracefully to query-only relevance plus "
+           "global popularity, which is exactly the challenge's cold-start constraint: user "
+           "history is never *required*, it only sharpens ambiguity when present. (Profiles "
+           "are seeded live moments earlier, so persona outputs can vary slightly "
+           "run-to-run.)"),
+    ]
+    return nb
+
+
 def performance_notebook(base: str) -> nbf.NotebookNode:
     nb = nbf.v4.new_notebook()
     nb.cells = [
@@ -164,6 +232,7 @@ def main() -> None:
     args = parser.parse_args()
     base = args.base.rstrip("/")
     build("demo.ipynb", demo_notebook(base), "demo_notebook.html")
+    build("coldstart_context.ipynb", coldstart_notebook(base), "coldstart_context.html")
     build("performance.ipynb", performance_notebook(base), "performance_report.html")
 
 

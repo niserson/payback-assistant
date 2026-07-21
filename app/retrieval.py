@@ -181,7 +181,8 @@ class BM25Index:
             tf + self.K1 * (1 - self.B + self.B * self.doc_len[doc_index] / self.avg_len))
         return self._idf(term) * norm
 
-    def search(self, query: str, top_k: int = 5, partner: Optional[str] = None) -> List[dict]:
+    def search(self, query: str, top_k: int = 5, partner: Optional[str] = None,
+               interests: Optional[Dict[str, float]] = None) -> List[dict]:
         raw_tokens = tokenize(query)
         groups = concept_groups(raw_tokens)
         wants_cheap = any(t in CHEAP_TOKENS for t in raw_tokens)
@@ -200,6 +201,10 @@ class BM25Index:
             final = score * 0.85 + product["popularity"] * 2.0 * 0.15
             if wants_cheap:
                 final += (1 - self._price_rank[product["id"]]) * 1.5
+            if interests:
+                # User-context rank boost: 30% weight, scaled by the user's percentage
+                # interest in this product's category (reorders near-ties only).
+                final *= 1 + 0.3 * interests.get(product["category"], 0.0) / 100
             scored.append((final, best_concept, product))
 
         scored.sort(key=lambda triple: -triple[0])

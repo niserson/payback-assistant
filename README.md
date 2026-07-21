@@ -86,11 +86,14 @@ priors — no user history exists anywhere in the system.
 | `/docs` | GET | OpenAPI UI |
 
 **User context:** every query updates a per-user interest profile (percentage per
-category, from the categories of returned products). The profile is injected into the
-Gemini prompt with an explicit **30% weight** (the current query keeps 70%) to break
-ambiguity in favor of categories the user demonstrably cares about. Storage is
-in-process per instance (demo scope); `app/context.py` is the seam for
-Firestore/Memorystore in production. Rebuild the notebooks against a live deployment
+category, from the categories of returned products). The profile carries a **30%
+weight at two layers**: it is injected into the Gemini prompt (resolving vague queries
+toward the user's dominant categories instead of clarifying), and retrieval multiplies
+each product's score by `1 + 0.3 × interest-share` of its category (favored categories
+win near-ties). Storage is in-process per instance with Cloud Run session affinity
+keeping a user pinned to one instance (demo scope); `app/context.py` is the seam for
+Firestore/Memorystore in production. See `/coldstart-notebook` for a live cold-start
+vs. persona comparison. Rebuild the notebooks against a live deployment
 with `python scripts/build_notebooks.py --base <url>`.
 
 Response shape (see `app/schemas.py`):
