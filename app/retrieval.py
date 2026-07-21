@@ -1,0 +1,183 @@
+"""Cross-catalog retrieval: pure-Python BM25 with a German<->English synonym layer.
+
+Design choice (Occam's razor): the corpus is small and vocabulary-dense, so lexical
+BM25 + bilingual query expansion beats an embedding stack on latency, determinism
+and operational weight — no model download, sub-millisecond queries, trivially
+containerizable. Cold start is inherent: ranking uses only the query context plus
+a global popularity prior (no user history anywhere).
+"""
+
+import math
+import re
+import unicodedata
+from collections import Counter
+from typing import Dict, List, Optional
+
+# Bilingual expansion: each group is a set of interchangeable tokens (de <-> en).
+_SYNONYM_GROUPS = [
+    {"windeln", "windel", "diapers", "diaper"},
+    {"feuchttücher", "wipes"},
+    {"schnuller", "pacifier"},
+    {"shampoo", "haarshampoo"},
+    {"zahnpasta", "toothpaste"},
+    {"zahnbürste", "toothbrush"},
+    {"sonnencreme", "sunscreen"},
+    {"waschmittel", "detergent"},
+    {"nudeln", "nudel", "pasta", "spaghetti", "penne"},
+    {"tomaten", "tomate", "tomatoes", "tomato"},
+    {"käse", "cheese", "parmesan"},
+    {"olivenöl", "olive", "öl", "oil"},
+    {"knoblauch", "garlic"},
+    {"zwiebeln", "zwiebel", "onions", "onion"},
+    {"eier", "ei", "eggs", "egg"},
+    {"milch", "milk"},
+    {"brot", "bread"},
+    {"äpfel", "apfel", "apples", "apple"},
+    {"obst", "fruit", "früchte"},
+    {"gemüse", "vegetables"},
+    {"fleisch", "meat"},
+    {"hähnchen", "chicken"},
+    {"hackfleisch", "beef", "bolognese"},
+    {"lachs", "salmon", "fisch", "fish"},
+    {"kaffee", "coffee"},
+    {"frühstück", "breakfast", "müsli", "muesli", "cereal"},
+    {"kopfhörer", "headphones", "headphone"},
+    {"buch", "bücher", "book", "books", "roman", "novel", "lesen", "reading"},
+    {"spielzeug", "toy", "toys"},
+    {"geschenk", "gift", "present", "geschenkidee"},
+    {"kinder", "kids", "children", "kind"},
+    {"baby", "babys"},
+    {"küche", "kitchen", "kochen", "cooking"},
+    {"pfanne", "pan"},
+    {"messer", "knife", "knives"},
+    {"lampe", "lamp", "licht", "light"},
+    {"wasser", "water"},
+    {"bio", "organic", "öko"},
+    {"grillen", "bbq", "grill", "barbecue", "bratwurst"},
+    {"sport", "fitness"},
+    {"joghurt", "yogurt", "yoghurt"},
+    {"butter"},
+    {"honig", "honey"},
+    {"haut", "skin", "creme", "cream", "lotion"},
+]
+
+_SYNONYMS: Dict[str, set] = {}
+for group in _SYNONYM_GROUPS:
+    for token in group:
+        _SYNONYMS.setdefault(token, set()).update(group)
+
+CHEAP_TOKENS = {"günstig", "günstige", "billig", "billige", "cheap", "budget", "angebot", "angebote", "deal", "deals", "offer", "offers", "sale"}
+
+_WORD_RE = re.compile(r"[a-zA-ZäöüÄÖÜß0-9]+")
+
+
+def _fold(text: str) -> str:
+    """Lowercase + fold umlauts to a canonical ascii-ish form (ä->a, ß->ss)."""
+    text = text.lower().replace("ß", "ss")
+    return "".join(c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn")
+
+
+def _stem(token: str) -> str:
+    """Very light German/English plural conflation (windeln->windel, apples->apple)."""
+    for suffix in ("en", "n", "e", "s"):
+        if len(token) > 4 and token.endswith(suffix):
+            return token[: -len(suffix)]
+    return token
+
+
+def tokenize(text: str) -> List[str]:
+    return _WORD_RE.findall(text.lower())
+
+
+def _index_forms(token: str) -> List[str]:
+    """All searchable forms of a token: folded + stemmed."""
+    folded = _fold(token)
+    return list({folded, _stem(folded)})
+
+
+def expand_query(tokens: List[str]) -> List[str]:
+    """Expand query tokens with bilingual synonyms, then fold/stem everything."""
+    expanded = []
+    for token in tokens:
+        expanded.append(token)
+        expanded.extend(_SYNONYMS.get(token, ()))
+    forms = []
+    for token in expanded:
+        forms.extend(_index_forms(token))
+    return forms
+
+
+class BM25Index:
+    """Okapi BM25 over weighted product fields, with popularity/price-aware blending."""
+
+    K1 = 1.5
+    B = 0.75
+    FIELD_WEIGHTS = {"name": 3, "brand": 2, "tags": 2, "category": 1}
+
+    def __init__(self, products: List[dict]):
+        self.products = products
+        self.doc_tokens: List[Counter] = []
+        self.doc_len: List[int] = []
+        self.df: Counter = Counter()
+        for product in products:
+            bag: Counter = Counter()
+            for field, weight in self.FIELD_WEIGHTS.items():
+                value = product[field]
+                text = " ".join(value) if isinstance(value, list) else str(value)
+                for token in tokenize(text):
+                    for form in _index_forms(token):
+                        bag[form] += weight
+            self.doc_tokens.append(bag)
+            self.doc_len.append(sum(bag.values()))
+            for term in bag:
+                self.df[term] += 1
+        self.n_docs = len(products)
+        self.avg_len = sum(self.doc_len) / max(1, self.n_docs)
+        prices = sorted(p["price"] for p in products)
+        self._price_rank = {p["id"]: prices.index(p["price"]) / max(1, len(prices) - 1) for p in products}
+
+    def _idf(self, term: str) -> float:
+        df = self.df.get(term, 0)
+        return math.log(1 + (self.n_docs - df + 0.5) / (df + 0.5))
+
+    def search(self, query: str, top_k: int = 5, partner: Optional[str] = None) -> List[dict]:
+        raw_tokens = tokenize(query)
+        query_terms = set(expand_query(raw_tokens))
+        wants_cheap = any(t in CHEAP_TOKENS for t in raw_tokens)
+
+        scored = []
+        for i, product in enumerate(self.products):
+            if partner and product["partner"] != partner:
+                continue
+            bag = self.doc_tokens[i]
+            score = 0.0
+            for term in query_terms:
+                tf = bag.get(term, 0)
+                if not tf:
+                    continue
+                norm = tf * (self.K1 + 1) / (tf + self.K1 * (1 - self.B + self.B * self.doc_len[i] / self.avg_len))
+                score += self._idf(term) * norm
+            if score <= 0:
+                continue
+            # Cold-start blend: query relevance dominates, global popularity breaks ties.
+            final = score * 0.85 + product["popularity"] * 2.0 * 0.15
+            if wants_cheap:
+                final += (1 - self._price_rank[product["id"]]) * 1.5
+            scored.append((final, product))
+
+        scored.sort(key=lambda pair: -pair[0])
+        if scored:
+            # Relative cutoff: drop weak tail matches (e.g. brand-only hits) so a
+            # dominant exact match isn't diluted by noise.
+            top_score = scored[0][0]
+            scored = [pair for pair in scored if pair[0] >= 0.25 * top_score]
+        results = []
+        for final, product in scored[:top_k]:
+            item = {k: v for k, v in product.items() if k != "popularity"}
+            item["score"] = round(final, 3)
+            results.append(item)
+        return results
+
+    def vocabulary(self) -> set:
+        """All indexed terms — used by intent detection to judge query specificity."""
+        return set(self.df)

@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.git/
+tests/
+data/
+demo.py
+loadtest.py
+scripts/
+*.md
