@@ -68,8 +68,12 @@ def handle(query: str, index: BM25Index, max_results: int = 5) -> AssistResponse
     search_query = query
     llm_clarify: Optional[str] = None
 
-    # Escalate to the LLM only when the fast path has nothing retrievable to work with.
-    if llm.available() and not result.is_specific and result.intent in ("search", "discovery"):
+    # Escalate to the LLM when the fast path can't fully parse the query: either
+    # nothing is retrievable, or some content tokens are unknown to the index
+    # (e.g. "spiegelei fur fruhstuck" — 'frühstück' matches but 'spiegelei' doesn't,
+    # so rules alone would return generic breakfast items instead of eggs).
+    needs_llm = (not result.is_specific) or bool(result.unknown_tokens)
+    if llm.available() and needs_llm and result.intent in ("search", "discovery"):
         understood = llm.classify(query)
         if understood:
             engine = f"rules+{llm.model_name()}@{llm.backend()}"

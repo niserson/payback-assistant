@@ -107,6 +107,24 @@ def expand_query(tokens: List[str]) -> List[str]:
     return forms
 
 
+def concept_groups(tokens: List[str]) -> List[frozenset]:
+    """One searchable form-set per query CONCEPT (token + its synonyms).
+
+    Scoring per concept (best matching form) instead of per expanded term keeps a
+    single concept with many synonyms ("frühstück" -> müsli/cereal/breakfast) from
+    drowning out other concepts in the query ("eier").
+    """
+    groups = set()
+    for token in tokens:
+        if token in CHEAP_TOKENS:
+            continue  # price sensitivity is a ranking modifier, not a concept
+        forms = set(_index_forms(token))
+        for synonym in _SYNONYMS.get(token, ()):
+            forms.update(_index_forms(synonym))
+        groups.add(frozenset(forms))
+    return list(groups)
+
+
 class BM25Index:
     """Okapi BM25 over weighted product fields, with popularity/price-aware blending."""
 
@@ -140,23 +158,25 @@ class BM25Index:
         df = self.df.get(term, 0)
         return math.log(1 + (self.n_docs - df + 0.5) / (df + 0.5))
 
+    def _term_score(self, term: str, doc_index: int) -> float:
+        tf = self.doc_tokens[doc_index].get(term, 0)
+        if not tf:
+            return 0.0
+        norm = tf * (self.K1 + 1) / (
+            tf + self.K1 * (1 - self.B + self.B * self.doc_len[doc_index] / self.avg_len))
+        return self._idf(term) * norm
+
     def search(self, query: str, top_k: int = 5, partner: Optional[str] = None) -> List[dict]:
         raw_tokens = tokenize(query)
-        query_terms = set(expand_query(raw_tokens))
+        groups = concept_groups(raw_tokens)
         wants_cheap = any(t in CHEAP_TOKENS for t in raw_tokens)
 
         scored = []
         for i, product in enumerate(self.products):
             if partner and product["partner"] != partner:
                 continue
-            bag = self.doc_tokens[i]
-            score = 0.0
-            for term in query_terms:
-                tf = bag.get(term, 0)
-                if not tf:
-                    continue
-                norm = tf * (self.K1 + 1) / (tf + self.K1 * (1 - self.B + self.B * self.doc_len[i] / self.avg_len))
-                score += self._idf(term) * norm
+            # Concept-level BM25: each query concept contributes its best form once.
+            score = sum(max(self._term_score(form, i) for form in group) for group in groups if group)
             if score <= 0:
                 continue
             # Cold-start blend: query relevance dominates, global popularity breaks ties.

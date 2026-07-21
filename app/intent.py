@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass
 from typing import Optional, Set
 
-from .retrieval import tokenize
+from .retrieval import CHEAP_TOKENS, expand_query, tokenize
 
 PARTNER_ALIASES = {
     "dm": "dm",
@@ -47,9 +47,10 @@ _DISCOVERY = {
     "abendessen", "party", "brunch",
 }
 # Function words that never indicate a concrete product need.
-_STOPWORDS = _DE_MARKERS | _EN_MARKERS | {
+_STOPWORDS = _DE_MARKERS | _EN_MARKERS | CHEAP_TOKENS | {
     "zeigen", "hallo", "hello", "hi", "danke", "thanks", "gerne", "heute", "morgen",
     "neue", "new", "gut", "good", "auf", "in", "an", "zu", "am", "um",
+    "fur", "furs", "fürs", "fuers",  # umlaut-less typing of für
 }
 
 
@@ -61,6 +62,7 @@ class IntentResult:
     partner: Optional[str]  # navigational target, if any
     is_specific: bool       # query names a concrete product/category we can retrieve
     content_tokens: list    # tokens after removing stopwords/partners
+    unknown_tokens: list    # content tokens with no match in the index (LLM escalation signal)
 
 
 def detect_language(text: str) -> str:
@@ -83,8 +85,8 @@ def detect(query: str, vocabulary: Set[str]) -> IntentResult:
 
     content = [t for t in tokens if t not in _STOPWORDS and t not in PARTNER_ALIASES]
     # Specific = at least one content token is retrievable in the joint index.
-    from .retrieval import expand_query
-    is_specific = any(form in vocabulary for form in expand_query(content))
+    unknown = [t for t in content if not any(f in vocabulary for f in expand_query([t]))]
+    is_specific = len(unknown) < len(content)
 
     if token_set & _SUPPORT:
         intent, confidence = "customer_support", 0.9
@@ -104,4 +106,5 @@ def detect(query: str, vocabulary: Set[str]) -> IntentResult:
         partner=partner,
         is_specific=is_specific,
         content_tokens=content,
+        unknown_tokens=unknown,
     )

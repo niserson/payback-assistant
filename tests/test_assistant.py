@@ -62,6 +62,14 @@ def test_vague_is_not_specific(index):
     assert not result.is_specific
 
 
+def test_unknown_tokens_flagged_for_llm(index):
+    # 'fruhstuck' matches the index, 'spiegelei' does not -> partial understanding.
+    result = detect("spiegelei fur fruhstuck", index.vocabulary())
+    assert result.is_specific
+    assert "spiegelei" in result.unknown_tokens
+    assert "fur" not in result.unknown_tokens  # umlaut-less filler is a stopword
+
+
 # ---------- retrieval (incl. cross-lingual + cold start) ----------
 
 def test_german_query_finds_diapers(index):
@@ -156,3 +164,18 @@ def test_llm_disabled_returns_none():
 def test_rules_engine_marker(client):
     body = ask(client, "günstige Windeln")
     assert body["engine"] == "rules"
+
+
+def test_llm_escalation_on_unknown_tokens(client, monkeypatch):
+    from app import llm
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "backend", lambda: "test")
+    monkeypatch.setattr(llm, "model_name", lambda: "fake-model")
+    monkeypatch.setattr(llm, "classify", lambda q: {
+        "intent": "search", "language": "de", "partner": None,
+        "search_terms": "eier frühstück", "clarifying_question": None,
+    })
+    body = ask(client, "spiegelei fur fruhstuck")
+    assert body["engine"] == "rules+fake-model@test"
+    names = " ".join(p["name"] for p in body["products"])
+    assert "Eier" in names

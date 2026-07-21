@@ -47,9 +47,13 @@ Rules:
 - "language" is the language of the query.
 - "partner" only if the user names a shop.
 - If the query names or clearly implies concrete products, set "search_terms" to
-  short GERMAN catalog keywords (always translate to German!) and leave
-  "clarifying_question" null.
+  short GERMAN keywords for BASE PRODUCTS a supermarket/drugstore sells (always
+  translate to German; map dishes, recipes and use-cases to their ingredients or
+  the products that fulfil them) and leave "clarifying_question" null.
   Example: "something to soothe my toddler's diaper rash" -> "wundschutz creme baby"
+  Example: "spiegelei fürs frühstück" -> "eier butter frühstück"
+  Example: "pancakes for the kids" -> "mehl eier milch zucker" (ingredients, not the
+  dish; drop audience words like kids/Kinder unless the product itself is for them)
   Example: "was fürs Grillfest am Samstag" -> "bratwurst grillen"
 - If the need is genuinely too vague to search, set "search_terms" null and ask ONE
   short clarifying question in the query's language.
