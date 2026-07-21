@@ -55,6 +55,8 @@ Rules:
   Example: "pancakes for the kids" -> "mehl eier milch zucker" (ingredients, not the
   dish; drop audience words like kids/Kinder unless the product itself is for them)
   Example: "was fürs Grillfest am Samstag" -> "bratwurst grillen"
+- A shopping LIST (several items separated by commas or und/and) is ALWAYS specific:
+  translate every item into German base-product keywords; never ask for clarification.
 - If the need is genuinely too vague to search, set "search_terms" null and ask ONE
   short clarifying question in the query's language.
 Query: "{query}"

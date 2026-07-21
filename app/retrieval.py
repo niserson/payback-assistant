@@ -56,6 +56,13 @@ _SYNONYM_GROUPS = [
     {"grillen", "bbq", "grill", "barbecue", "bratwurst"},
     {"sport", "fitness"},
     {"joghurt", "yogurt", "yoghurt"},
+    {"süßigkeiten", "sweets", "candy", "naschen", "schokolade", "chocolate", "gummibärchen"},
+    {"kuchen", "cake", "torte", "gebäck"},
+    {"backen", "baking", "backmischung"},
+    {"pizza", "tiefkühlpizza"},
+    {"avocadobrot", "avocado", "brot"},
+    {"mehl", "flour"},
+    {"zucker", "sugar"},
     {"butter"},
     {"honig", "honey"},
     {"haut", "skin", "creme", "cream", "lotion"},
@@ -71,9 +78,17 @@ CHEAP_TOKENS = {"günstig", "günstige", "billig", "billige", "cheap", "budget",
 _WORD_RE = re.compile(r"[a-zA-ZäöüÄÖÜß0-9]+")
 
 
+_DIGRAPH_RE = re.compile(r"(?<!q)ue")  # keep qu- words intact (quelle, quer)
+
+
 def _fold(text: str) -> str:
-    """Lowercase + fold umlauts to a canonical ascii-ish form (ä->a, ß->ss)."""
+    """Lowercase + fold umlauts AND typed-out digraphs to one canonical form.
+
+    'Süßigkeiten', 'Suessigkeiten' and 'Sussigkeiten' all fold to 'sussigkeiten' —
+    applied identically to index and query, so occasional collisions stay harmless.
+    """
     text = text.lower().replace("ß", "ss")
+    text = _DIGRAPH_RE.sub("u", text.replace("ae", "a").replace("oe", "o"))
     return "".join(c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn")
 
 
@@ -176,23 +191,36 @@ class BM25Index:
             if partner and product["partner"] != partner:
                 continue
             # Concept-level BM25: each query concept contributes its best form once.
-            score = sum(max(self._term_score(form, i) for form in group) for group in groups if group)
+            concept_scores = [max(self._term_score(form, i) for form in group) for group in groups if group]
+            score = sum(concept_scores)
             if score <= 0:
                 continue
+            best_concept = max(range(len(concept_scores)), key=lambda c: concept_scores[c])
             # Cold-start blend: query relevance dominates, global popularity breaks ties.
             final = score * 0.85 + product["popularity"] * 2.0 * 0.15
             if wants_cheap:
                 final += (1 - self._price_rank[product["id"]]) * 1.5
-            scored.append((final, product))
+            scored.append((final, best_concept, product))
 
-        scored.sort(key=lambda pair: -pair[0])
+        scored.sort(key=lambda triple: -triple[0])
         if scored:
             # Relative cutoff: drop weak tail matches (e.g. brand-only hits) so a
             # dominant exact match isn't diluted by noise.
             top_score = scored[0][0]
-            scored = [pair for pair in scored if pair[0] >= 0.25 * top_score]
+            scored = [triple for triple in scored if triple[0] >= 0.25 * top_score]
+
+        # Concept coverage: a shopping list ("Süßigkeiten, Pizza und Kuchen") should
+        # surface the best item for EVERY concept before adding runner-ups.
+        covered: set = set()
+        first_pass, runners = [], []
+        for final, concept, product in scored:
+            (first_pass if concept not in covered else runners).append((final, product))
+            covered.add(concept)
+        picked = (first_pass + runners)[:top_k]
+        picked.sort(key=lambda pair: -pair[0])
+
         results = []
-        for final, product in scored[:top_k]:
+        for final, product in picked:
             item = {k: v for k, v in product.items() if k != "popularity"}
             item["score"] = round(final, 3)
             results.append(item)

@@ -88,6 +88,21 @@ def test_no_weak_tail_false_positives(index):
     assert hits and all("Windeln" in h["name"] for h in hits)
 
 
+def test_shopping_list_fully_understood_by_rules(index):
+    # Regression: umlaut-less typing + compound + list must not need clarification.
+    result = detect("Sussigkeiten, Avocadobrot, Pizza und Kuchen", index.vocabulary())
+    assert result.is_specific and not result.unknown_tokens
+
+
+def test_shopping_list_returns_products(client):
+    body = ask(client, "Sussigkeiten, Avocadobrot, Pizza und Kuchen")
+    assert body["engine"] == "rules" and body["action"]["type"] == "recommend"
+    names = " ".join(p["name"] for p in body["products"]).lower()
+    assert "pizza" in names
+    assert ("schokolade" in names) or ("gummibärchen" in names)
+    assert "kuchen" in names
+
+
 def test_partner_scoping(index):
     hits = index.search("Shampoo", partner="dm")
     assert hits and all(h["partner"] == "dm" for h in hits)

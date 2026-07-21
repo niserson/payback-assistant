@@ -71,6 +71,15 @@ _EDEKA = [
     ("Grillwürstchen Bratwurst", "EDEKA", "Fleisch", 3.99, "400 g", ["bratwurst", "grillen", "bbq", "sausage"], 0.54),
     ("Bio-Honig", "EDEKA Bio", "Frühstück", 4.49, "500 g", ["honig", "honey", "bio", "organic", "frühstück"], 0.49),
     ("Knuspermüsli Schoko", "EDEKA", "Frühstück", 2.19, "500 g", ["müsli", "muesli", "cereal", "frühstück", "breakfast"], 0.61),
+    ("Schokolade Vollmilch", "EDEKA", "Süßigkeiten", 1.19, "100 g", ["schokolade", "chocolate", "süßigkeiten", "sweets", "naschen"], 0.83),
+    ("Gummibärchen Goldbären", "Haribo", "Süßigkeiten", 1.45, "175 g", ["gummibärchen", "gummy bears", "süßigkeiten", "sweets", "candy"], 0.77),
+    ("Tiefkühlpizza Salami", "EDEKA", "Tiefkühl", 2.79, "320 g", ["pizza", "tiefkühlpizza", "salami"], 0.81),
+    ("Avocado essreif", "EDEKA", "Obst", 1.49, "1 St", ["avocado", "obst", "frisch"], 0.64),
+    ("Toastbrot Buttertoast", "EDEKA", "Backwaren", 1.29, "500 g", ["toast", "toastbrot", "brot", "bread"], 0.71),
+    ("Weizenmehl Type 405", "EDEKA", "Backen", 0.89, "1 kg", ["mehl", "flour", "backen", "baking"], 0.69),
+    ("Zucker fein", "EDEKA", "Backen", 1.09, "1 kg", ["zucker", "sugar", "backen"], 0.66),
+    ("Backmischung Schokokuchen", "EDEKA", "Backen", 1.99, "500 g", ["kuchen", "cake", "backmischung", "backen", "schokolade"], 0.52),
+    ("Marmorkuchen", "EDEKA Bäckerei", "Backwaren", 2.99, "400 g", ["kuchen", "cake", "marmorkuchen", "gebäck"], 0.54),
 ]
 
 _AMAZON = [
