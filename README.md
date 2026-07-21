@@ -206,6 +206,16 @@ Dockerfile      slim, non-root
 scripts/        Cloud Run deployment
 ```
 
+## Out of scope (deliberate demo boundaries)
+
+- Full session information and semantic IDs (e.g. SASRec-style sequential recommenders).
+- Full RecSys evaluation (NDCG, MRR) — requires crafting ground-truth relevance data.
+- Product catalogue size is limited to what is meaningful within synthetic generation.
+- Observability/logging beyond basic request logs, due to the missing evaluation loop.
+- Online performance measurement on test/control groups, A/A tests, causal inference.
+- User action feedback (clicks, views, impressions) — no full shopping portal or
+  customer-journey data exists.
+
 ## Security & correctness notes
 
 - Strict input validation (Pydantic, length-capped queries), no dynamic code paths.

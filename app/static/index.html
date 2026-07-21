@@ -88,6 +88,18 @@
   </div>
 
   <div id="out"></div>
+
+  <div class="card" style="margin-top:26px">
+    <div style="font-weight:700;color:var(--muted);font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Out of scope (deliberate demo boundaries)</div>
+    <ul style="margin:0;padding-left:18px;color:var(--muted);font-size:.88rem;line-height:1.55">
+      <li>Full session information and semantic IDs are not considered (e.g. SASRec-style sequential recommenders).</li>
+      <li>Full RecSys evaluation (NDCG, MRR) is not considered — it requires crafting ground-truth relevance data.</li>
+      <li>Product catalogue data size is limited to what is meaningful within synthetic generation.</li>
+      <li>Observability and logging beyond basic request logs are not considered due to the missing evaluation loop.</li>
+      <li>Online performance measurement on test/control groups, A/A tests and causal inference is not considered.</li>
+      <li>User action feedback (clicks, views, impressions) is not considered — there is no full shopping portal or customer-journey data.</li>
+    </ul>
+  </div>
 </div>
 
 <script>
