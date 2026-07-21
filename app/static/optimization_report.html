@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PAYBACK Assistant — Inference Optimization Report</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f4f6fb;
+         color: #1a2333; margin: 0; padding: 24px 16px 64px; }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { color: #003eb0; font-size: 1.3rem; }
+  h2 { color: #003eb0; font-size: 1.05rem; margin-top: 28px; }
+  p, li { font-size: .93rem; line-height: 1.55; }
+  .sub, .muted { color: #5b6579; }
+  .card { background: #fff; border: 1px solid #e2e7f0; border-radius: 14px; padding: 18px 20px; margin-top: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+  th, td { border: 1px solid #e2e7f0; padding: 7px 10px; text-align: left; }
+  th { background: #eef2fb; color: #003eb0; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .good { color: #147a3d; font-weight: 600; }
+  .bad { color: #b3261e; font-weight: 600; }
+  .tag { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-right: 6px; }
+  .applied { background: #e8f7ee; color: #147a3d; }
+  .rejected { background: #fdeeee; color: #b3261e; }
+  code { background: #eef2fb; padding: 1px 5px; border-radius: 4px; font-size: .85em; }
+  a { color: #003eb0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Inference Optimization Report — LLM path latency</h1>
+  <p class="sub">Method: hypothesis → direct API probe → apply only what measures well → verify on the
+  live service. All numbers are server-side (<code>latency_ms</code> from the deployed Cloud Run
+  service, europe-west3), same six paraphrase queries per model, <code>llm_mode: always</code>.
+  <a href="/">← demo UI</a> · <a href="/performance-report">full performance report</a></p>
+
+  <h2>Results: before → after</h2>
+  <div class="card">
+    <table>
+      <tr><th>Model</th><th>p50 before</th><th>p50 after</th><th>Δ</th><th>Timeout fallbacks</th><th>Verdict</th></tr>
+      <tr><td>gemini-2.5-flash-lite <span class="muted">(default)</span></td>
+          <td class="num">683 ms</td><td class="num">372 ms</td><td class="num good">−45%</td>
+          <td class="num">0/6 → 0/6</td><td class="good">production default</td></tr>
+      <tr><td>gemini-2.5-flash</td>
+          <td class="num">4 287 ms</td><td class="num">708 ms</td><td class="num good">−83%</td>
+          <td class="num">2/6 → 0/6</td><td class="good">now viable</td></tr>
+      <tr><td>gemini-3.1-flash-lite</td>
+          <td class="num">1 149 ms</td><td class="num">1 203 ms</td><td class="num">±0</td>
+          <td class="num">0/6 → 0/6</td><td>unchanged (global-only, no thinking flag)</td></tr>
+      <tr><td>gemini-3.5-flash</td>
+          <td class="num">12 358 ms</td><td class="num">~4 500 ms (fast-fail)</td><td class="num">—</td>
+          <td class="num">6/6 → 6/6</td><td class="bad">cannot meet 6 s budget</td></tr>
+      <tr><td>Repeated query (response cache)</td>
+          <td class="num">~400 ms</td><td class="num">0 ms</td><td class="num good">−100%</td>
+          <td class="num">—</td><td class="good">free</td></tr>
+    </table>
+    <p class="muted" style="margin-bottom:0">Deterministic rules path (known-vocabulary queries) is unaffected: ~1–2 ms server-side.</p>
+  </div>
+
+  <h2>Optimizations tested and applied</h2>
+  <div class="card">
+    <ol>
+      <li><span class="tag applied">applied</span><b>Disable hidden reasoning:</b> <code>thinkingConfig.thinkingBudget = 0</code>
+        for the Gemini 2.5 family. These models spend "thinking" tokens by default — useless for a
+        classification task. Probe: 2.5-flash 2 926 → 870 ms per raw call. This one flag is what
+        turned 2.5-flash from timing out into a viable tier.</li>
+      <li><span class="tag applied">applied</span><b>Compact wire schema + output cap:</b> the model replies with
+        single-letter JSON keys (<code>{"i","l","p","t","c"}</code>, mapped back to full names server-side)
+        under <code>maxOutputTokens: 96</code>. Decode time dominates generation, so halving output tokens
+        is the cheapest speedup. Combined with a ~60% smaller prompt (terse rules, inline few-shot
+        examples, user-context profile as one line): flash-lite p50 683 → 372 ms.</li>
+      <li><span class="tag applied">applied</span><b>Regional Vertex endpoint:</b> 2.5 models are served from
+        <code>europe-west4</code> (adjacent to the Cloud Run region) instead of the global endpoint —
+        probed ~250 ms RTT saving warm. Per-model routing, override via <code>VERTEX_LOCATION</code>.</li>
+      <li><span class="tag applied">applied</span><b>TTL response cache</b> keyed by (model, normalized query,
+        user context): identical repeats cost 0 ms. Deliberately context-aware — the same user's repeat
+        after their interest profile changed is a <i>different</i> key (personalization correctness
+        over hit rate).</li>
+      <li><span class="tag applied">applied</span><b>Robustness that protects latency:</b>
+        <code>responseMimeType: application/json</code> + temperature 0 (no parse retries), string
+        <code>"null"</code> outputs normalized, hard 6 s timeout + one retry with fallback to the rules
+        answer (<code>LLM_TIMEOUT_S</code> tunable) — the API never blocks on a slow model.</li>
+    </ol>
+  </div>
+
+  <h2>Tested and rejected</h2>
+  <div class="card">
+    <ol>
+      <li><span class="tag rejected">rejected</span><b><code>thinkingBudget: 0</code> on 3.x models:</b> probed no
+        effect on 3.5-flash (3 122 → 3 226 ms) and slightly worse on 3.1-flash-lite; applied to the 2.5 family only.</li>
+      <li><span class="tag rejected">rejected</span><b>Regional endpoint for 3.x models:</b> probed 404 on
+        <code>europe-west4</code>/<code>west1</code> — these models are global-endpoint-only.</li>
+      <li><span class="tag rejected">rejected</span><b>gemini-3.5-flash as a serving tier:</b> its inference floor
+        (~3 s+, plus mandatory thinking that the output cap truncates) cannot meet the 6 s budget; it fast-fails
+        to the rules answer. Kept in the allowlist only for benchmarking honesty.</li>
+      <li><span class="tag rejected">rejected</span><b>Streaming:</b> the agent needs the complete JSON before
+        acting, so time-to-first-token gains don't translate to end-to-end latency here.</li>
+    </ol>
+  </div>
+
+  <h2>Architecture-level context</h2>
+  <div class="card">
+    <p style="margin:0">The strongest optimization remains <b>not calling the LLM</b>: deterministic
+    rules + concept-grouped BM25 answer every known-vocabulary query in ~1–2 ms, the LLM runs only on
+    unknown terms (or on request via <code>llm_mode: always</code>), and recurring misses can be promoted
+    into the synonym lexicon — the escalation rate shrinks over time. Live evidence for every number on
+    this page is in the executed <a href="/performance-report">performance notebook</a>.</p>
+  </div>
+</div>
+</body>
+</html>

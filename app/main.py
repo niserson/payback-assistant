@@ -101,6 +101,11 @@ def performance_report() -> str:
     return _static_page("performance_report.html")
 
 
+@app.get("/optimization-report", response_class=HTMLResponse, include_in_schema=False)
+def optimization_report() -> str:
+    return _static_page("optimization_report.html")
+
+
 @app.post("/assist", response_model=AssistResponse)
 def assist(request: AssistRequest) -> AssistResponse:
     try:

@@ -57,6 +57,19 @@ def demo_notebook(base: str) -> nbf.NotebookNode:
            "`engine` field and the `user_context` interest profile accumulated by the five "
            "queries above (fed to the LLM with 30% weight)."),
         code("ask('Ich brauche etwas gegen wunden Po bei meinem Kleinkind')"),
+        md("### Bonus — engine modes: `off` (rules only) vs `always` (LLM on every query)\n"
+           "Same query through both engines. Rules answer known vocabulary in ~1–2 ms server-side; "
+           "the optimized LLM path (thinking disabled, compact schema, regional Vertex endpoint — "
+           "see [/optimization-report](/optimization-report)) adds ~0.4 s. `llm_mode` and `model` "
+           "are per-request API fields."),
+        code("import uuid, requests as rq\n"
+             "q = f'Sussigkeiten und Pizza {uuid.uuid4().hex[:6]}'  # nonce avoids the response cache\n"
+             "for mode in ('off', 'always'):\n"
+             "    d = rq.post(f'{BASE}/assist', json={'query': q, 'llm_mode': mode,\n"
+             "                'user_id': 'demo-modes'}, timeout=60).json()\n"
+             "    tops = ', '.join(p['name'] for p in d['products'][:3])\n"
+             "    print(f\"llm_mode={mode:6} server={d['latency_ms']:7.1f} ms  engine={d['engine']}\")\n"
+             "    print(f'  -> {tops}')"),
     ]
     return nb
 

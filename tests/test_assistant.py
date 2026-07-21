@@ -180,6 +180,12 @@ def test_ui_served(client):
     assert "PAYBACK Lightweight Assistant" in response.text
 
 
+def test_optimization_report_served(client):
+    response = client.get("/optimization-report")
+    assert response.status_code == 200
+    assert "thinkingBudget" in response.text
+
+
 def test_taxonomy_tree_svg(client):
     response = client.get("/taxonomy-tree")
     assert response.status_code == 200
