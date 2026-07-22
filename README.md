@@ -1,5 +1,7 @@
 # PAYBACK Lightweight Assistant
 
+[![CI](https://github.com/niserson/payback-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/niserson/payback-assistant/actions/workflows/ci.yml)
+
 A lightweight microservice that takes a raw user query (German or English), detects
 **intent** (`search` / `discovery` / `comparison` / `customer_support`) and **language**,
 and returns a structured JSON response: either **recommended products** retrieved across
