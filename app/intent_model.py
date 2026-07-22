@@ -1,16 +1,18 @@
 """Learned query classifier — replaces all hand-coded intent/language lexicons.
 
-A TF-IDF (char n-gram) + logistic-regression model with four heads:
+EmbeddingGemma-300m (q4 ONNX, app.semantic) embeddings + logistic-regression
+heads:
   intent   search | discovery | comparison | customer_support
   language de | en
   price    price-sensitive query? (drives the low-price ranking boost)
   vague    too unspecific to search? (drives the clarifying-question action)
 
-Design rationale (vs a HuggingFace transformer): sub-millisecond CPU inference,
-~40 MB of dependencies instead of ~2 GB of torch, deterministic training in
-seconds inside the Docker build, no cold-start model download — the right
-trade-off for a 512 MiB Cloud Run service. Semantics the classifier cannot
-carry (paraphrases, out-of-vocabulary products) belong to the Gemini path.
+Feature choice is benchmark-driven (scripts/benchmark_*.py): Gemma embeddings
+match TF-IDF on the in-template eval set (97.5% vs 97.8%) but jump from 70% to
+90-100% on off-template paraphrases, and the same embedding doubles as the
+semantic retrieval net — one ~36 ms encode per query, amortized across both
+jobs. Semantics the model cannot ground in the catalog still belong to the
+Gemini path.
 
 Training data is generated from templates over the live catalog (tags, names,
 categories) — domain knowledge lives in *labeled data*, not in runtime code.
@@ -24,13 +26,14 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import joblib
-from sklearn.feature_extraction.text import TfidfVectorizer
+import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from .catalog import PARTNERS, build_catalog
 from .retrieval import fold_token, tokenize
+from .semantic import QUERY_PREFIX, get_encoder
 
-MODEL_PATH = Path(__file__).resolve().parent.parent / "data" / "intent_model.joblib"
+MODEL_PATH = Path(__file__).resolve().parent.parent / "data" / "intent_gemma.joblib"
 _SEED = 13
 _STOPWORD_DF = 0.02  # tokens appearing in >=2% of training queries are function words
 
@@ -145,9 +148,7 @@ def build_training_data(seed: int = _SEED) -> List[Tuple[str, str, str, int, int
 def train(path: Path = MODEL_PATH) -> Dict:
     rows = build_training_data()
     texts = [r[0].lower() for r in rows]
-    vectorizer = TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 4), min_df=2,
-                                 max_features=60000)
-    features = vectorizer.fit_transform(texts)
+    features = get_encoder().encode(texts, QUERY_PREFIX)
 
     def fit(labels, balanced=False):
         clf = LogisticRegression(max_iter=1000, C=4.0, random_state=_SEED,
@@ -156,7 +157,6 @@ def train(path: Path = MODEL_PATH) -> Dict:
         return clf
 
     artifact = {
-        "vectorizer": vectorizer,
         "intent": fit([r[1] for r in rows]),
         "language": fit([r[2] for r in rows]),
         # binary heads are heavily imbalanced (few positive examples) -> balanced weights
@@ -186,7 +186,11 @@ class IntentModel:
         self.stopwords: set = artifact["stopwords"]
 
     def predict(self, query: str) -> Dict:
-        features = self._a["vectorizer"].transform([query.lower()])
+        embedding = get_encoder().encode([query.lower()], QUERY_PREFIX)
+        return self.predict_from_embedding(embedding, query)
+
+    def predict_from_embedding(self, embedding: np.ndarray, query: str) -> Dict:
+        features = embedding.reshape(1, -1) if embedding.ndim == 1 else embedding
         probs = self._a["intent"].predict_proba(features)[0]
         best = probs.argmax()
         return {
@@ -195,6 +199,7 @@ class IntentModel:
             "language": self._a["language"].predict(features)[0],
             "price_sensitive": bool(self._a["price"].predict(features)[0]),
             "vague": bool(self._a["vague"].predict(features)[0]),
+            "embedding": features[0],
         }
 
 

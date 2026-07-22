@@ -16,7 +16,7 @@ deterministic path if the LLM is unavailable.
 import time
 from typing import Optional
 
-from . import context, llm
+from . import context, llm, semantic
 from .intent import IntentResult, detect
 from .retrieval import BM25Index
 from .schemas import Action, AssistResponse, Product
@@ -84,6 +84,23 @@ def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "a
             elif understood["clarifying_question"]:
                 llm_clarify = understood["clarifying_question"]
 
+    # Semantic net: when the LLM did not resolve the query (off, unavailable, or
+    # timed out) and the lexical index can't ground it, fall back to cosine top-k
+    # over EmbeddingGemma product embeddings — deterministic, ~0 extra cost since
+    # the query embedding already exists. Confidence-gated (SIM_THRESHOLD) so
+    # out-of-domain queries still get a clarifying question.
+    semantic_products: list = []
+    if (engine == "classifier" and not llm_clarify and result.embedding is not None
+            and needs_llm and not result.is_vague
+            and result.intent in ("search", "discovery")):
+        hits = semantic.topk(result.embedding, k=max_results)
+        if hits and hits[0][1] >= semantic.SIM_THRESHOLD:
+            result.is_specific = True  # grounded semantically; engine marked only if used
+            semantic_products = [
+                {**{k: v for k, v in p.items() if k != "popularity"}, "score": round(sim, 3)}
+                for p, sim in hits
+            ]
+
     def run_search(partner=None, k=max_results):
         return index.search(search_query, top_k=k, partner=partner, interests=profile,
                             price_sensitive=result.price_sensitive)
@@ -119,6 +136,9 @@ def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "a
 
     else:  # search or grounded discovery
         products = run_search()
+        if not products and semantic_products:
+            products = semantic_products
+            engine = "classifier+semantic"
         if products:
             detail = ("Suchergebnisse über alle Partner-Kataloge." if lang == "de"
                       else "Search results across all partner catalogs.")

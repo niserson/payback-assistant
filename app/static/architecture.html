@@ -93,7 +93,7 @@
 
     <rect x="220" y="410" width="180" height="90" rx="10" fill="#eef2fb" stroke="#003eb0"/>
     <text x="310" y="436" text-anchor="middle" font-size="13" font-weight="700" fill="#003eb0">Cloud Run · FastAPI</text>
-    <text x="310" y="454" text-anchor="middle" font-size="11" fill="#33415c">learned query classifier</text>
+    <text x="310" y="454" text-anchor="middle" font-size="11" fill="#33415c">EmbeddingGemma q4 + LogReg heads</text>
     <text x="310" y="470" text-anchor="middle" font-size="11" fill="#33415c">next-best-action agent</text>
     <text x="310" y="486" text-anchor="middle" font-size="11" fill="#33415c">user context store</text>
 
@@ -118,7 +118,7 @@
     <text x="425" y="445" text-anchor="middle" font-size="10" fill="#b3261e">escalation</text>
 
     <!-- legend -->
-    <text x="20" y="560" font-size="11" fill="#5b6579">Solid arrows: every request (~1 ms classifier path). Dashed: escalation to Gemini 2.5 Flash-Lite on Vertex AI only when the catalog vocabulary can't ground the query (~0.4 s).</text>
+    <text x="20" y="560" font-size="11" fill="#5b6579">Solid arrows: every request (~100 ms classifier path incl. Gemma encode). Dashed: escalation to Gemini 2.5 Flash-Lite on Vertex AI when the catalog can't ground the query (~0.4 s); with the LLM off, a confidence-gated Gemma cosine net answers instead.</text>
     <text x="20" y="578" font-size="11" fill="#5b6579">Serving retrieval = unified BM25 (one index, partner as filter). Warehouse retrieval = three separate BigQuery tables fanned out in one UNION ALL VECTOR_SEARCH.</text>
     <text x="20" y="596" font-size="11" fill="#5b6579">User context: every query updates a per-user category-interest profile; the profile enters the Gemini prompt with an explicit 30% weight.</text>
   </svg>

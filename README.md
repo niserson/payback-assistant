@@ -8,14 +8,16 @@ and returns a structured JSON response: either **recommended products** retrieve
 three partner ecosystems, a **clarifying question**, a **partner route**, or a
 **support handoff**.
 
-Built deliberately minimal (Occam's razor): a learned query classifier (TF-IDF +
-logistic regression — no hand-coded lexicons, trained from synthetic labeled data at
-build time) + pure-Python BM25 over the catalogs' own bilingual tags. No torch, no
-GPU, cold starts in milliseconds, and every decision is auditable. The module boundaries (`intent`,
+No hand-coded lexicons anywhere: query understanding is EmbeddingGemma-300m (q4
+ONNX, torch-free, ~190 MB, benchmark-selected over E5/static/TF-IDF alternatives —
+see `scripts/benchmark_*.py`) feeding logistic-regression heads trained from
+synthetic labeled data at build time, plus pure-Python BM25 over the catalogs' own
+bilingual tags and a confidence-gated cosine semantic net over the same embeddings. The module boundaries (`intent`,
 `retrieval`, `agent`) are clean seams where an LLM or embedding model can be swapped
 in later without touching the API contract.
 
-**Hybrid understanding:** the deterministic classifier path answers everything it can in ~1 ms;
+**Hybrid understanding:** the deterministic path (Gemma encode + heads + BM25, ~100 ms
+on 1 vCPU) answers everything it can;
 only queries with no retrievable product term escalate to Gemini (Vertex AI on Cloud
 Run, AI Studio locally), which translates the need into German catalog keywords or a
 clarifying question — with silent fallback to the classifier if the LLM is unavailable. A
@@ -45,8 +47,10 @@ curl -X POST http://localhost:8080/assist \
 flowchart LR
     U[User query de/en] --> API[FastAPI /assist<br/>on Cloud Run]
     CTX[(User context store<br/>interest % per category)] --- API
-    API --> CLS[Learned classifier TF-IDF+LogReg<br/>intent, language, price, vagueness]
-    CLS -->|grounded in catalog, ~1 ms| R[BM25 retrieval<br/>+ 30% interest boost]
+    API --> CLS[EmbeddingGemma-300m q4 + LogReg heads<br/>intent, language, price, vagueness]
+    CLS -->|grounded in catalog| R[BM25 retrieval<br/>+ 30% interest boost]
+    CLS -->|LLM off/failed, cosine >= 0.51| SEM[Semantic net<br/>Gemma cosine top-k]
+    SEM --> J
     CLS -->|unknown terms or llm_mode=always| LLM[Gemini 2.5 Flash-Lite via Vertex AI<br/>query 70% + user context 30%<br/>thinking off, compact JSON, ~0.4 s]
     LLM -->|German catalog keywords| R
     LLM -->|too vague| C[Clarifying question<br/>+ profile suggestions]
@@ -185,7 +189,8 @@ latency is the p50/p95 band.)
 ## Performance report
 
 Latency was minimized by *removing* inference from the hot path rather than optimizing
-it: intent detection is a learned linear classifier (~0.3 ms) and retrieval is
+it: intent detection is EmbeddingGemma embeddings + linear heads (~100 ms on 1 vCPU,
+the embedding amortized across intent AND the semantic net) and retrieval is
 BM25 over a pre-built in-memory inverted index (O(query terms × candidate postings)),
 so end-to-end handler time is well under a millisecond and total response time is
 dominated by HTTP overhead. Bilingual catalog tags plus algorithmic folding replace a
@@ -206,7 +211,8 @@ app/
   catalog.py    synthetic 3-partner catalog (seeded, reproducible)
   retrieval.py  BM25 index over bilingual catalog tags, cold-start ranking
   intent.py     query understanding (learned classifier + index-grounded signals)
-  intent_model.py  TF-IDF+LogReg training/inference (intent, language, price, vague)
+  intent_model.py  Gemma-embedding + LogReg heads (intent, language, price, vague)
+  semantic.py   EmbeddingGemma q4 ONNX encoder, product matrix, cosine net
   agent.py      next-best-action policy
 tests/          unit + e2e tests (pytest)
 demo.py         5+ queries -> JSON output
@@ -227,8 +233,10 @@ tag/name match only), so the normalization + synonym layers earn their scores.
 python -m evaluation.harness    # full report in <5s (deterministic classifier path)
 ```
 
-Current results: intent 99.1%, language 99.7%, action 99.1%, partner routing 100%,
-Hit@5 0.993, MRR@5 0.981, NDCG@5 0.974 (282 retrieval examples). CI enforces
+Current results (EmbeddingGemma engine): intent 97.5%, language 100%, action 99.1%,
+partner routing 100%, Hit@5 1.000, MRR@5 1.000, NDCG@5 0.993 (282 retrieval
+examples); off-template paraphrase slice 90-100% vs 70% for the earlier TF-IDF
+features. CI enforces
 thresholds (≥95% accuracies, Hit@5 ≥ 0.95, NDCG@5 ≥ 0.90) on every push. Executed
 walkthrough: `/evaluation-notebook` on the live service.
 

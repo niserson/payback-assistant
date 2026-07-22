@@ -23,10 +23,12 @@ _state = {}
 async def lifespan(app: FastAPI):
     catalog = load_catalog()
     _state["index"] = BM25Index(catalog)
+    from . import semantic
+    semantic.warm()  # EmbeddingGemma q4 + product matrix (baked at build time)
     from .intent_model import get_model
     model = get_model()  # warm the learned classifier (trains on first-ever start)
-    log.info("Indexed %d products across %d partners; classifier ready (%d function words)",
-             len(catalog), len(PARTNERS), len(model.stopwords))
+    log.info("Indexed %d products across %d partners; classifier + semantic tier ready "
+             "(%d function words)", len(catalog), len(PARTNERS), len(model.stopwords))
     yield
     _state.clear()
 

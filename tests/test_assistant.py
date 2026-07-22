@@ -160,6 +160,20 @@ def test_vague_asks_clarifying_question(client):
     assert body2["action"]["type"] == "clarify" and body2["clarifying_question"]
 
 
+def test_semantic_net_grounds_unknown_dish(client):
+    # LLM off + no lexical match -> EmbeddingGemma cosine net finds the eggs.
+    body = client.post("/assist", json={"query": "omelette", "llm_mode": "off"}).json()
+    assert body["engine"] == "classifier+semantic"
+    assert any("Eier" in p["name"] for p in body["products"])
+
+
+def test_semantic_net_rejects_out_of_domain(client):
+    # Below the similarity threshold -> clarify, no junk products.
+    body = client.post("/assist", json={"query": "wie wird das wetter morgen",
+                                        "llm_mode": "off"}).json()
+    assert body["action"]["type"] == "clarify"
+
+
 def test_support_handoff(client):
     body = ask(client, "Ich habe ein Problem mit meinen PAYBACK Punkten")
     assert body["intent"] == "customer_support"

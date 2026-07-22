@@ -28,6 +28,7 @@ class IntentResult:
     price_sensitive: bool   # classifier: price-focused phrasing
     content_tokens: list    # tokens after removing learned function words/partners
     unknown_tokens: list    # content tokens with no match in the index (LLM signal)
+    embedding: object = None  # query embedding (reused by the semantic retrieval net)
 
 
 def detect_language(text: str) -> str:
@@ -55,4 +56,5 @@ def detect(query: str, vocabulary: Set[str]) -> IntentResult:
         price_sensitive=prediction["price_sensitive"],
         content_tokens=content,
         unknown_tokens=unknown,
+        embedding=prediction.get("embedding"),
     )
