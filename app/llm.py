@@ -61,13 +61,13 @@ _PROMPT = """You classify retail queries for a German loyalty app. Partners: dm 
 Reply ONLY with JSON (use JSON null, never the string "null"): {{"i":"search|discovery|comparison|customer_support","l":"de|en","p":"dm|edeka|amazon"|null,"t":"German search keywords"|null,"c":"clarifying question"|null}}
 Rules:
 - l = language of the query. p only if the user names a shop.
-- If concrete products are implied, t = short GERMAN base-product keywords (always translate; map dishes/use-cases to supermarket products; drop audience words). Ex: "spiegelei fürs frühstück"->"eier butter frühstück"; "pancakes for the kids"->"mehl eier milch zucker".
+- If concrete products are implied, t = short GERMAN base-product keywords (always translate; map dishes/use-cases to ALL their core supermarket ingredients; drop audience words). Ex: "spiegelei fürs frühstück"->"eier butter frühstück"; "pancakes for the kids"->"mehl eier milch zucker"; "carbonara"->"spaghetti eier speck parmesan".
 - Shopping lists (items joined by commas/und/and) are always specific.
 - Only if truly vague: t = null, c = ONE short question in the query's language.
 {context_block}Query: "{query}"
 """
 
-_CONTEXT_BLOCK = """User interests (weight ~30% vs query 70%): {profile}. Resolve vague queries toward dominant categories, e.g. "Baby & Kind 80%"+"creme"->"wundschutz creme baby"; "Sport & Fitness 70%"+"was für draußen"->"campingstuhl rucksack trinkflasche". Never contradict explicit intent.
+_CONTEXT_BLOCK = """User interests (weight ~30% vs query 70%): {profile}. Resolve VAGUE queries toward dominant categories, e.g. "Baby & Kind 80%"+"creme"->"wundschutz creme baby"; "Sport & Fitness 70%"+"was für draußen"->"campingstuhl rucksack trinkflasche". For SPECIFIC dishes or products the profile must never remove ingredients: keep the full decomposition (e.g. carbonara always includes eier) and let the profile only influence ordering or brand-level preferences.
 """
 
 
