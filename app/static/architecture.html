@@ -22,7 +22,8 @@
   each partner keeps its own taxonomy, ingestion normalizes everything into one shared schema,
   and a query hits a single unified in-memory index (serving path) while the same catalogs live in
   three separate BigQuery tables queried at once via <code>VECTOR_SEARCH … UNION ALL</code>
-  (warehouse path). <a href="/">← back to the demo UI</a></p>
+  (warehouse path). The API runs on <b>Cloud Run</b>; queries the classifier cannot ground in the
+  catalog escalate to <b>Gemini 2.5 Flash-Lite served on Vertex AI</b> (service-account auth, no keys). <a href="/">← back to the demo UI</a></p>
 
   <div class="card">
   <svg viewBox="0 0 980 620" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, sans-serif">
@@ -97,16 +98,16 @@
     <text x="310" y="486" text-anchor="middle" font-size="11" fill="#33415c">user context store</text>
 
     <rect x="450" y="410" width="200" height="90" rx="10" fill="#fdeeee" stroke="#b3261e"/>
-    <text x="550" y="434" text-anchor="middle" font-size="13" font-weight="700" fill="#b3261e">Vertex AI · Gemini</text>
-    <text x="550" y="452" text-anchor="middle" font-size="11" fill="#7c3733">only if tokens unknown to index</text>
+    <text x="550" y="434" text-anchor="middle" font-size="13" font-weight="700" fill="#b3261e">Vertex AI · Gemini 2.5 Flash-Lite</text>
+    <text x="550" y="452" text-anchor="middle" font-size="11" fill="#7c3733">escalation: unknown terms / always</text>
     <text x="550" y="468" text-anchor="middle" font-size="11" fill="#7c3733">query 70% + user context 30%</text>
-    <text x="550" y="484" text-anchor="middle" font-size="11" fill="#7c3733">→ German catalog keywords</text>
+    <text x="550" y="484" text-anchor="middle" font-size="11" fill="#7c3733">→ German catalog keywords · ~0.4 s</text>
 
     <rect x="720" y="410" width="230" height="90" rx="10" fill="#fff" stroke="#147a3d"/>
     <text x="835" y="434" text-anchor="middle" font-size="13" font-weight="700" fill="#147a3d">Structured JSON</text>
     <text x="835" y="452" text-anchor="middle" font-size="11" fill="#2c5f43">recommend · clarify · route ·</text>
     <text x="835" y="468" text-anchor="middle" font-size="11" fill="#2c5f43">compare · support_handoff</text>
-    <text x="835" y="484" text-anchor="middle" font-size="11" fill="#2c5f43">+ interest profile per category</text>
+    <text x="835" y="484" text-anchor="middle" font-size="11" fill="#2c5f43">+ engine + interest profile</text>
 
     <line x1="170" y1="455" x2="220" y2="455" stroke="#003eb0" stroke-width="2" marker-end="url(#arrb)"/>
     <line x1="400" y1="455" x2="450" y2="455" stroke="#003eb0" stroke-width="2" marker-end="url(#arrb)" stroke-dasharray="6 4"/>
@@ -117,7 +118,7 @@
     <text x="425" y="445" text-anchor="middle" font-size="10" fill="#b3261e">escalation</text>
 
     <!-- legend -->
-    <text x="20" y="560" font-size="11" fill="#5b6579">Solid arrows: every request (~1 ms classifier path). Dashed: LLM escalation only when the catalog vocabulary can't ground the query (~0.8 s).</text>
+    <text x="20" y="560" font-size="11" fill="#5b6579">Solid arrows: every request (~1 ms classifier path). Dashed: escalation to Gemini 2.5 Flash-Lite on Vertex AI only when the catalog vocabulary can't ground the query (~0.4 s).</text>
     <text x="20" y="578" font-size="11" fill="#5b6579">Serving retrieval = unified BM25 (one index, partner as filter). Warehouse retrieval = three separate BigQuery tables fanned out in one UNION ALL VECTOR_SEARCH.</text>
     <text x="20" y="596" font-size="11" fill="#5b6579">User context: every query updates a per-user category-interest profile; the profile enters the Gemini prompt with an explicit 30% weight.</text>
   </svg>
