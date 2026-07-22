@@ -164,6 +164,39 @@ def test_support_handoff(client):
     assert body["action"]["type"] == "support_handoff" and not body["products"]
 
 
+# ---------- evaluation harness ----------
+
+def test_eval_dataset_size_and_coverage():
+    from evaluation.dataset import build_dataset
+    data = build_dataset()
+    assert len(data) >= 300
+    intents = {e["intent"] for e in data}
+    assert intents == {"search", "discovery", "comparison", "customer_support"}
+    assert {e["language"] for e in data} == {"de", "en"}
+    assert build_dataset() == data  # deterministic
+
+
+def test_eval_metrics_thresholds(index):
+    from evaluation.dataset import build_dataset
+    from evaluation.harness import run
+    report = run(build_dataset(), index)
+    assert report["intent_accuracy"] >= 0.95
+    assert report["language_accuracy"] >= 0.95
+    assert report["action_accuracy"] >= 0.95
+    assert report["hit@5"] >= 0.95
+    assert report["ndcg@5"] >= 0.90
+
+
+def test_ranking_metrics_math():
+    from evaluation.harness import score_ranking
+    perfect = score_ranking(["a", "b"], {"a", "b"})
+    assert perfect["hit"] == 1.0 and perfect["mrr"] == 1.0 and abs(perfect["ndcg"] - 1.0) < 1e-9
+    second = score_ranking(["x", "a"], {"a"})
+    assert second["mrr"] == 0.5
+    miss = score_ranking(["x", "y"], {"a"})
+    assert miss["hit"] == 0.0 and miss["ndcg"] == 0.0
+
+
 def test_input_validation(client):
     assert client.post("/assist", json={"query": ""}).status_code == 422
     assert client.post("/assist", json={"query": "x" * 501}).status_code == 422

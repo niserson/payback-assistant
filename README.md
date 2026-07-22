@@ -208,12 +208,28 @@ Dockerfile      slim, non-root
 scripts/        Cloud Run deployment
 ```
 
+## Evaluation
+
+`evaluation/` contains an offline harness: a deterministic synthetic dataset
+(**320 labeled examples** across intents, languages and actions, generated from the
+catalog via templates — also loaded to BigQuery as `payback_assistant.eval_examples`)
+and a metrics runner. Ground-truth relevance is independent of the retriever (literal
+tag/name match only), so the normalization + synonym layers earn their scores.
+
+```bash
+python -m evaluation.harness    # full report in <2s (deterministic rules path)
+```
+
+Current results: intent 99.1%, language 99.7%, action 99.1%, partner routing 100%,
+Hit@5 0.993, MRR@5 0.981, NDCG@5 0.974 (282 retrieval examples). CI enforces
+thresholds (≥95% accuracies, Hit@5 ≥ 0.95, NDCG@5 ≥ 0.90) on every push. Executed
+walkthrough: `/evaluation-notebook` on the live service.
+
 ## Out of scope (deliberate demo boundaries)
 
 - Full session information and semantic IDs (e.g. SASRec-style sequential recommenders).
-- Full RecSys evaluation (NDCG, MRR) — requires crafting ground-truth relevance data.
 - Product catalogue size is limited to what is meaningful within synthetic generation.
-- Observability/logging beyond basic request logs, due to the missing evaluation loop.
+- Observability/logging beyond basic request logs.
 - Online performance measurement on test/control groups, A/A tests, causal inference.
 - User action feedback (clicks, views, impressions) — no full shopping portal or
   customer-journey data exists.

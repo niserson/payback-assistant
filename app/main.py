@@ -96,6 +96,11 @@ def coldstart_notebook() -> str:
     return _static_page("coldstart_context.html")
 
 
+@app.get("/evaluation-notebook", response_class=HTMLResponse, include_in_schema=False)
+def evaluation_notebook() -> str:
+    return _static_page("evaluation_notebook.html")
+
+
 @app.get("/performance-report", response_class=HTMLResponse, include_in_schema=False)
 def performance_report() -> str:
     return _static_page("performance_report.html")

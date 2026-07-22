@@ -7796,59 +7796,18 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=89fb6aa6">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f95a0bf5">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="PAYBACK-Lightweight-Assistant-%E2%80%94-Demo">PAYBACK Lightweight Assistant — Demo<a class="anchor-link" href="#PAYBACK-Lightweight-Assistant-%E2%80%94-Demo">¶</a></h1><p>Five distinct queries (different <strong>languages</strong> and <strong>intents</strong>) against the live Cloud Run service <code>https://payback-assistant-506488371374.europe-west3.run.app</code>, showing the raw JSON responses.</p>
-<table>
-<thead>
-<tr>
-<th>#</th>
-<th>Query</th>
-<th>Language</th>
-<th>Expected intent / action</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>Bitte zeige mir Angebote für günstige Windeln</td>
-<td>de</td>
-<td>search → recommend</td>
-</tr>
-<tr>
-<td>2</td>
-<td>I need stuff for a pasta dinner</td>
-<td>en</td>
-<td>discovery → theme basket</td>
-</tr>
-<tr>
-<td>3</td>
-<td>Suche Shampoo bei dm</td>
-<td>de</td>
-<td>navigational → route_to_partner</td>
-</tr>
-<tr>
-<td>4</td>
-<td>Was ist besser: Bio-Olivenöl oder normales Olivenöl?</td>
-<td>de</td>
-<td>comparison → compare</td>
-</tr>
-<tr>
-<td>5</td>
-<td>Ich habe ein Problem mit meinen PAYBACK Punkten</td>
-<td>de</td>
-<td>customer_support → handoff</td>
-</tr>
-</tbody>
-</table>
+<h1 id="Offline-Evaluation-%E2%80%94-Intent,-Language,-Action-&amp;-Retrieval-Metrics">Offline Evaluation — Intent, Language, Action &amp; Retrieval Metrics<a class="anchor-link" href="#Offline-Evaluation-%E2%80%94-Intent,-Language,-Action-&amp;-Retrieval-Metrics">¶</a></h1><p>A synthetic labeled dataset (<strong>320 examples</strong>, generated deterministically from the catalog via templates) scores the assistant on intent/language/action accuracy and ranked-retrieval quality (<strong>Hit@5, MRR@5, NDCG@5</strong>).</p>
+<p><strong>Ground truth is independent of the retriever</strong>: a product is relevant iff the query term literally appears in its tags or name — no synonyms, folding or stemming. The retriever earns its scores by bridging umlauts, digraphs, plurals and DE↔EN synonyms on top of that strict labeling. The dataset also lives in BigQuery (<code>payback_assistant.eval_examples</code>) alongside the three partner tables.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8fdc7ae0">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=c899c106">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7856,13 +7815,15 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">requests</span>
-<span class="n">BASE</span> <span class="o">=</span> <span class="s1">'https://payback-assistant-506488371374.europe-west3.run.app'</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">ask</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="s1">'demo-notebook'</span><span class="p">):</span>
-    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">BASE</span><span class="si">}</span><span class="s1">/assist'</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s1">'query'</span><span class="p">:</span> <span class="n">query</span><span class="p">,</span> <span class="s1">'user_id'</span><span class="p">:</span> <span class="n">user_id</span><span class="p">},</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
-    <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">(),</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">'service:'</span><span class="p">,</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">BASE</span><span class="si">}</span><span class="s1">/health'</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">sys</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">())</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">evaluation.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_dataset</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">build_dataset</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="s1">'examples'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'intents  :'</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">Counter</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">'intent'</span><span class="p">]</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">data</span><span class="p">)))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'languages:'</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">Counter</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">'language'</span><span class="p">]</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">data</span><span class="p">)))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'actions  :'</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">Counter</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">'expected_action'</span><span class="p">]</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">data</span><span class="p">)))</span>
 </pre></div>
 </div>
 </div>
@@ -7875,24 +7836,27 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>service: {'status': 'ok', 'version': '1.0.0', 'products': 97, 'llm': 'gemini-2.5-flash-lite'}
+<pre>320 examples
+intents  : {'search': 236, 'discovery': 34, 'comparison': 30, 'customer_support': 20}
+languages: {'de': 204, 'en': 116}
+actions  : {'recommend': 207, 'compare': 30, 'support_handoff': 20, 'route_to_partner': 45, 'clarify': 18}
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2ff4e499">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6f994655">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="1-%E2%80%94-German-%C2%B7-search-(price-aware)">1 — German · search (price-aware)<a class="anchor-link" href="#1-%E2%80%94-German-%C2%B7-search-(price-aware)">¶</a></h2>
+<h2 id="Offline-run-(in-process,-deterministic-rules-path-%E2%80%94-same-thing-CI-asserts)">Offline run (in-process, deterministic rules path — same thing CI asserts)<a class="anchor-link" href="#Offline-run-(in-process,-deterministic-rules-path-%E2%80%94-same-thing-CI-asserts)">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e8177d82">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=fd2903e3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7900,7 +7864,9 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">ask</span><span class="p">(</span><span class="s1">'Bitte zeige mir Angebote für günstige Windeln'</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">evaluation.harness</span><span class="w"> </span><span class="kn">import</span> <span class="n">run</span><span class="p">,</span> <span class="n">print_report</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="n">print_report</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -7913,61 +7879,31 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{
-  "query": "Bitte zeige mir Angebote für günstige Windeln",
-  "language": "de",
-  "intent": "search",
-  "confidence": 0.85,
-  "action": {
-    "type": "recommend",
-    "detail": "Suchergebnisse über alle Partner-Kataloge."
-  },
-  "partner_filter": null,
-  "products": [
-    {
-      "id": "dm-001",
-      "partner": "dm",
-      "name": "Windeln Größe 4 Maxi",
-      "brand": "babylove",
-      "category": "Baby &amp; Kind",
-      "price": 5.02,
-      "unit": "42 St",
-      "tags": [
-        "windeln",
-        "diapers",
-        "baby",
-        "wickeln"
-      ],
-      "score": 7.096
-    }
-  ],
-  "clarifying_question": null,
-  "engine": "rules",
-  "user_context": {
-    "user_id": "demo-notebook",
-    "interests": {
-      "Baby &amp; Kind": 100.0
-    }
-  },
-  "latency_ms": 1.41
-}
+<pre>examples            : 320
+intent accuracy     : 99.1%
+language accuracy   : 99.7%
+action accuracy     : 99.1%
+partner accuracy    : 100.0%
+retrieval (n=282): Hit@5=0.993  MRR@5=0.981  NDCG@5=0.974
+per-intent accuracy : {'comparison': 1.0, 'customer_support': 0.95, 'discovery': 1.0, 'search': 0.9915}
+top confusions      : {'search-&gt;discovery': 2, 'customer_support-&gt;discovery': 1}
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c80c51ac">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1c55b5ea">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="2-%E2%80%94-English-%C2%B7-discovery-(theme-basket-across-partners)">2 — English · discovery (theme basket across partners)<a class="anchor-link" href="#2-%E2%80%94-English-%C2%B7-discovery-(theme-basket-across-partners)">¶</a></h2>
+<h2 id="Live-spot-check:-a-random-sample-against-the-deployed-Cloud-Run-service">Live spot-check: a random sample against the deployed Cloud Run service<a class="anchor-link" href="#Live-spot-check:-a-random-sample-against-the-deployed-Cloud-Run-service">¶</a></h2><p>Confirms the deployed revision matches the offline harness (rules path, <code>llm_mode: off</code> for determinism).</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=475b49e0">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=7460038d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7975,7 +7911,16 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">ask</span><span class="p">(</span><span class="s1">'I need stuff for a pasta dinner'</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">random</span><span class="o">,</span><span class="w"> </span><span class="nn">requests</span>
+<span class="n">BASE</span> <span class="o">=</span> <span class="s1">'https://payback-assistant-506488371374.europe-west3.run.app'</span>
+<span class="n">sample</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">Random</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+<span class="n">ok_intent</span> <span class="o">=</span> <span class="n">ok_action</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ex</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sample</span><span class="p">):</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">BASE</span><span class="si">}</span><span class="s1">/assist'</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s1">'query'</span><span class="p">:</span> <span class="n">ex</span><span class="p">[</span><span class="s1">'query'</span><span class="p">],</span> <span class="s1">'llm_mode'</span><span class="p">:</span> <span class="s1">'off'</span><span class="p">,</span>
+                      <span class="s1">'user_id'</span><span class="p">:</span> <span class="sa">f</span><span class="s1">'eval-live-</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">'</span><span class="p">},</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="n">ok_intent</span> <span class="o">+=</span> <span class="n">r</span><span class="p">[</span><span class="s1">'intent'</span><span class="p">]</span> <span class="o">==</span> <span class="n">ex</span><span class="p">[</span><span class="s1">'intent'</span><span class="p">]</span>
+    <span class="n">ok_action</span> <span class="o">+=</span> <span class="n">r</span><span class="p">[</span><span class="s1">'action'</span><span class="p">][</span><span class="s1">'type'</span><span class="p">]</span> <span class="o">==</span> <span class="n">ex</span><span class="p">[</span><span class="s1">'expected_action'</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'live sample n=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span><span class="si">}</span><span class="s1">: intent </span><span class="si">{</span><span class="n">ok_intent</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span><span class="si">}</span><span class="s1">, action </span><span class="si">{</span><span class="n">ok_action</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -7988,598 +7933,24 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{
-  "query": "I need stuff for a pasta dinner",
-  "language": "en",
-  "intent": "search",
-  "confidence": 0.8,
-  "action": {
-    "type": "recommend",
-    "detail": "Search results across all partner catalogs."
-  },
-  "partner_filter": null,
-  "products": [
-    {
-      "id": "edeka-020",
-      "partner": "edeka",
-      "name": "Spaghetti No.5",
-      "brand": "EDEKA Italia",
-      "category": "Nudeln &amp; Trockensortiment",
-      "price": 0.95,
-      "unit": "500 g",
-      "tags": [
-        "spaghetti",
-        "nudeln",
-        "pasta"
-      ],
-      "score": 7.159
-    },
-    {
-      "id": "edeka-021",
-      "partner": "edeka",
-      "name": "Penne Rigate",
-      "brand": "EDEKA Italia",
-      "category": "Nudeln &amp; Trockensortiment",
-      "price": 0.96,
-      "unit": "500 g",
-      "tags": [
-        "penne",
-        "nudeln",
-        "pasta"
-      ],
-      "score": 6.883
-    },
-    {
-      "id": "edeka-022",
-      "partner": "edeka",
-      "name": "Basmati Reis",
-      "brand": "EDEKA",
-      "category": "Nudeln &amp; Trockensortiment",
-      "price": 2.39,
-      "unit": "1 kg",
-      "tags": [
-        "reis",
-        "rice"
-      ],
-      "score": 3.649
-    },
-    {
-      "id": "amazon-010",
-      "partner": "amazon",
-      "name": "Kochbuch Pasta Amore",
-      "brand": "GU Verlag",
-      "category": "Bücher &amp; Medien",
-      "price": 26.03,
-      "unit": "1 St",
-      "tags": [
-        "kochbuch",
-        "cookbook",
-        "pasta",
-        "buch",
-        "kochen"
-      ],
-      "score": 3.5
-    },
-    {
-      "id": "edeka-015",
-      "partner": "edeka",
-      "name": "Mozzarella",
-      "brand": "EDEKA Italia",
-      "category": "Käse",
-      "price": 1.0,
-      "unit": "125 g",
-      "tags": [
-        "mozzarella",
-        "käse",
-        "cheese",
-        "pasta"
-      ],
-      "score": 3.066
-    }
-  ],
-  "clarifying_question": null,
-  "engine": "rules+gemini-2.5-flash-lite@vertex-ai",
-  "user_context": {
-    "user_id": "demo-notebook",
-    "interests": {
-      "Nudeln &amp; Trockensortiment": 50.0,
-      "Baby &amp; Kind": 16.7,
-      "Bücher &amp; Medien": 16.7,
-      "Käse": 16.7
-    }
-  },
-  "latency_ms": 636.79
-}
+<pre>live sample n=40: intent 40/40, action 40/40
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fa907683">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=bc231160">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="3-%E2%80%94-German-%C2%B7-navigational-(partner-scoped-route)">3 — German · navigational (partner-scoped route)<a class="anchor-link" href="#3-%E2%80%94-German-%C2%B7-navigational-(partner-scoped-route)">¶</a></h2>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d5ee1f2a">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">ask</span><span class="p">(</span><span class="s1">'Suche Shampoo bei dm'</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{
-  "query": "Suche Shampoo bei dm",
-  "language": "de",
-  "intent": "search",
-  "confidence": 0.85,
-  "action": {
-    "type": "route_to_partner",
-    "detail": "Weiterleitung zur Partner-Suche: dm."
-  },
-  "partner_filter": "dm",
-  "products": [
-    {
-      "id": "dm-005",
-      "partner": "dm",
-      "name": "Shampoo Repair &amp; Care",
-      "brand": "Balea",
-      "category": "Haarpflege",
-      "price": 2.0,
-      "unit": "300 ml",
-      "tags": [
-        "shampoo",
-        "haare",
-        "hair"
-      ],
-      "score": 7.311
-    }
-  ],
-  "clarifying_question": null,
-  "engine": "rules",
-  "user_context": {
-    "user_id": "demo-notebook",
-    "interests": {
-      "Nudeln &amp; Trockensortiment": 42.9,
-      "Baby &amp; Kind": 14.3,
-      "Bücher &amp; Medien": 14.3,
-      "Käse": 14.3,
-      "Haarpflege": 14.3
-    }
-  },
-  "latency_ms": 0.41
-}
-</pre>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fe662e1b">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="4-%E2%80%94-German-%C2%B7-comparison">4 — German · comparison<a class="anchor-link" href="#4-%E2%80%94-German-%C2%B7-comparison">¶</a></h2>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9b4950c1">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">ask</span><span class="p">(</span><span class="s1">'Was ist besser: Bio-Olivenöl oder normales Olivenöl?'</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{
-  "query": "Was ist besser: Bio-Olivenöl oder normales Olivenöl?",
-  "language": "de",
-  "intent": "comparison",
-  "confidence": 0.8,
-  "action": {
-    "type": "compare",
-    "detail": "Vergleich der besten Treffer über alle Partner (Preis pro Einheit beachten)."
-  },
-  "partner_filter": null,
-  "products": [
-    {
-      "id": "edeka-024",
-      "partner": "edeka",
-      "name": "Olivenöl Extra Vergine",
-      "brand": "EDEKA Bio",
-      "category": "Konserven &amp; Saucen",
-      "price": 7.08,
-      "unit": "500 ml",
-      "tags": [
-        "olivenöl",
-        "olive oil",
-        "bio",
-        "organic",
-        "pasta"
-      ],
-      "score": 10.814
-    },
-    {
-      "id": "edeka-012",
-      "partner": "edeka",
-      "name": "Bio-Eier Freiland",
-      "brand": "EDEKA Bio",
-      "category": "Molkerei &amp; Eier",
-      "price": 3.4,
-      "unit": "10 St",
-      "tags": [
-        "eier",
-        "eggs",
-        "bio",
-        "organic"
-      ],
-      "score": 5.354
-    },
-    {
-      "id": "edeka-011",
-      "partner": "edeka",
-      "name": "Bio-Joghurt Natur",
-      "brand": "EDEKA Bio",
-      "category": "Molkerei &amp; Eier",
-      "price": 1.0,
-      "unit": "500 g",
-      "tags": [
-        "joghurt",
-        "yogurt",
-        "bio",
-        "organic"
-      ],
-      "score": 5.306
-    },
-    {
-      "id": "edeka-035",
-      "partner": "edeka",
-      "name": "Bio-Honig",
-      "brand": "EDEKA Bio",
-      "category": "Frühstück",
-      "price": 4.44,
-      "unit": "500 g",
-      "tags": [
-        "honig",
-        "honey",
-        "bio",
-        "organic",
-        "frühstück"
-      ],
-      "score": 5.301
-    },
-    {
-      "id": "dm-003",
-      "partner": "dm",
-      "name": "Babybrei Pastinake",
-      "brand": "dmBio",
-      "category": "Baby &amp; Kind",
-      "price": 1.12,
-      "unit": "190 g",
-      "tags": [
-        "babybrei",
-        "baby food",
-        "bio",
-        "organic"
-      ],
-      "score": 3.941
-    }
-  ],
-  "clarifying_question": null,
-  "engine": "rules",
-  "user_context": {
-    "user_id": "demo-notebook",
-    "interests": {
-      "Nudeln &amp; Trockensortiment": 25.0,
-      "Baby &amp; Kind": 16.7,
-      "Molkerei &amp; Eier": 16.7,
-      "Bücher &amp; Medien": 8.3,
-      "Käse": 8.3,
-      "Haarpflege": 8.3,
-      "Konserven &amp; Saucen": 8.3,
-      "Frühstück": 8.3
-    }
-  },
-  "latency_ms": 1.13
-}
-</pre>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8eab352c">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="5-%E2%80%94-German-%C2%B7-customer-support-(handoff,-no-products)">5 — German · customer support (handoff, no products)<a class="anchor-link" href="#5-%E2%80%94-German-%C2%B7-customer-support-(handoff,-no-products)">¶</a></h2>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=b3106b28">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">ask</span><span class="p">(</span><span class="s1">'Ich habe ein Problem mit meinen PAYBACK Punkten'</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{
-  "query": "Ich habe ein Problem mit meinen PAYBACK Punkten",
-  "language": "de",
-  "intent": "customer_support",
-  "confidence": 0.9,
-  "action": {
-    "type": "support_handoff",
-    "detail": "Das klingt nach einem Anliegen für unseren Kundenservice. Ich leite dich weiter: PAYBACK Service unter 089 / 996 331 60 oder im Hilfe-Center der App (Konto → Hilfe)."
-  },
-  "partner_filter": null,
-  "products": [],
-  "clarifying_question": null,
-  "engine": "rules",
-  "user_context": {
-    "user_id": "demo-notebook",
-    "interests": {
-      "Nudeln &amp; Trockensortiment": 25.0,
-      "Baby &amp; Kind": 16.7,
-      "Molkerei &amp; Eier": 16.7,
-      "Bücher &amp; Medien": 8.3,
-      "Käse": 8.3,
-      "Haarpflege": 8.3,
-      "Konserven &amp; Saucen": 8.3,
-      "Frühstück": 8.3
-    }
-  },
-  "latency_ms": 0.2
-}
-</pre>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fb7c2bf2">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Bonus-%E2%80%94-LLM-escalation-+-user-context">Bonus — LLM escalation + user context<a class="anchor-link" href="#Bonus-%E2%80%94-LLM-escalation-+-user-context">¶</a></h3><p>A paraphrase the lexicon cannot parse escalates to Gemini on Vertex AI; note the <code>engine</code> field and the <code>user_context</code> interest profile accumulated by the five queries above (fed to the LLM with 30% weight).</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=0687cbb5">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">ask</span><span class="p">(</span><span class="s1">'Ich brauche etwas gegen wunden Po bei meinem Kleinkind'</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{
-  "query": "Ich brauche etwas gegen wunden Po bei meinem Kleinkind",
-  "language": "de",
-  "intent": "search",
-  "confidence": 0.8,
-  "action": {
-    "type": "recommend",
-    "detail": "Suchergebnisse über alle Partner-Kataloge."
-  },
-  "partner_filter": null,
-  "products": [
-    {
-      "id": "dm-018",
-      "partner": "dm",
-      "name": "After Sun Lotion",
-      "brand": "Sundance",
-      "category": "Sonnenschutz",
-      "price": 3.28,
-      "unit": "200 ml",
-      "tags": [
-        "after sun",
-        "sonne",
-        "haut"
-      ],
-      "score": 5.244
-    },
-    {
-      "id": "dm-002",
-      "partner": "dm",
-      "name": "Feuchttücher Sensitiv",
-      "brand": "babylove",
-      "category": "Baby &amp; Kind",
-      "price": 1.67,
-      "unit": "80 St",
-      "tags": [
-        "feuchttücher",
-        "wipes",
-        "baby"
-      ],
-      "score": 4.802
-    },
-    {
-      "id": "dm-010",
-      "partner": "dm",
-      "name": "Handcreme Kamille",
-      "brand": "Balea",
-      "category": "Körperpflege",
-      "price": 1.19,
-      "unit": "100 ml",
-      "tags": [
-        "handcreme",
-        "hand cream"
-      ],
-      "score": 4.719
-    },
-    {
-      "id": "dm-009",
-      "partner": "dm",
-      "name": "Bodylotion Urea",
-      "brand": "Balea",
-      "category": "Körperpflege",
-      "price": 2.23,
-      "unit": "400 ml",
-      "tags": [
-        "bodylotion",
-        "body lotion",
-        "haut"
-      ],
-      "score": 4.638
-    },
-    {
-      "id": "dm-003",
-      "partner": "dm",
-      "name": "Babybrei Pastinake",
-      "brand": "dmBio",
-      "category": "Baby &amp; Kind",
-      "price": 1.12,
-      "unit": "190 g",
-      "tags": [
-        "babybrei",
-        "baby food",
-        "bio",
-        "organic"
-      ],
-      "score": 4.57
-    }
-  ],
-  "clarifying_question": null,
-  "engine": "rules+gemini-2.5-flash-lite@vertex-ai",
-  "user_context": {
-    "user_id": "demo-notebook",
-    "interests": {
-      "Baby &amp; Kind": 23.5,
-      "Nudeln &amp; Trockensortiment": 17.6,
-      "Molkerei &amp; Eier": 11.8,
-      "Körperpflege": 11.8,
-      "Bücher &amp; Medien": 5.9,
-      "Käse": 5.9,
-      "Haarpflege": 5.9,
-      "Konserven &amp; Saucen": 5.9,
-      "Frühstück": 5.9,
-      "Sonnenschutz": 5.9
-    }
-  },
-  "latency_ms": 386.24
-}
-</pre>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=27933b59">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Bonus-%E2%80%94-engine-modes:-off-(rules-only)-vs-always-(LLM-on-every-query)">Bonus — engine modes: <code>off</code> (rules only) vs <code>always</code> (LLM on every query)<a class="anchor-link" href="#Bonus-%E2%80%94-engine-modes:-off-(rules-only)-vs-always-(LLM-on-every-query)">¶</a></h3><p>Same query through both engines. Rules answer known vocabulary in ~1–2 ms server-side; the optimized LLM path (thinking disabled, compact schema, regional Vertex endpoint — see <a href="/optimization-report">/optimization-report</a>) adds ~0.4 s. <code>llm_mode</code> and <code>model</code> are per-request API fields.</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=12b47fae">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [8]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span><span class="o">,</span><span class="w"> </span><span class="nn">requests</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">rq</span>
-<span class="n">q</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">'Sussigkeiten und Pizza </span><span class="si">{</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">[:</span><span class="mi">6</span><span class="p">]</span><span class="si">}</span><span class="s1">'</span>  <span class="c1"># nonce avoids the response cache</span>
-<span class="k">for</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'off'</span><span class="p">,</span> <span class="s1">'always'</span><span class="p">):</span>
-    <span class="n">d</span> <span class="o">=</span> <span class="n">rq</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">BASE</span><span class="si">}</span><span class="s1">/assist'</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s1">'query'</span><span class="p">:</span> <span class="n">q</span><span class="p">,</span> <span class="s1">'llm_mode'</span><span class="p">:</span> <span class="n">mode</span><span class="p">,</span>
-                <span class="s1">'user_id'</span><span class="p">:</span> <span class="s1">'demo-modes'</span><span class="p">},</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
-    <span class="n">tops</span> <span class="o">=</span> <span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s1">'products'</span><span class="p">][:</span><span class="mi">3</span><span class="p">])</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"llm_mode=</span><span class="si">{</span><span class="n">mode</span><span class="si">:</span><span class="s2">6</span><span class="si">}</span><span class="s2"> server=</span><span class="si">{</span><span class="n">d</span><span class="p">[</span><span class="s1">'latency_ms'</span><span class="p">]</span><span class="si">:</span><span class="s2">7.1f</span><span class="si">}</span><span class="s2"> ms  engine=</span><span class="si">{</span><span class="n">d</span><span class="p">[</span><span class="s1">'engine'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'  -&gt; </span><span class="si">{</span><span class="n">tops</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>llm_mode=off    server=    1.0 ms  engine=rules
-  -&gt; Tiefkühlpizza Salami, Schokolade Vollmilch, Gummibärchen Goldbären
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>llm_mode=always server=  384.4 ms  engine=rules+gemini-2.5-flash-lite@vertex-ai
-  -&gt; Tiefkühlpizza Salami, Gummibärchen Goldbären, Schokolade Vollmilch
-</pre>
-</div>
+<h2 id="Reading-the-numbers">Reading the numbers<a class="anchor-link" href="#Reading-the-numbers">¶</a></h2><ul>
+<li><strong>Intent/action accuracy ≈ 99%</strong> with the confusions listed openly — e.g. a support phrasing without lexicon keywords drifting to discovery. Each confusion is a concrete lexicon fix or an LLM-escalation candidate.</li>
+<li><strong>Hit@5 ≈ 0.99, NDCG@5 ≈ 0.97</strong> against strict literal ground truth shows the normalization/synonym layer does real work (English queries retrieve German products).</li>
+<li>Limitations stated plainly: the dataset is synthetic (template-generated), so scores measure coverage of the modeled query space, not real-user distribution; the LLM path is excluded here for determinism (its behavior is exercised in the cold-start and demo notebooks). CI enforces thresholds (intent/action/language ≥ 95%, Hit@5 ≥ 0.95, NDCG@5 ≥ 0.90) on every push.</li>
+</ul>
 </div>
 </div>
 </div>
