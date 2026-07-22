@@ -98,6 +98,71 @@
     </ol>
   </div>
 
+  <h2>Model bake-off: query understanding (intent classification)</h2>
+  <p class="sub">Same training data (2 865 template-generated examples) and the same two test sets for every
+  candidate: the 320-example eval set and a 20-example <b>off-template paraphrase slice</b> neither saw in
+  training. Latency is single-query CPU encode+classify. Reproduce via <code>scripts/benchmark_*.py</code>.</p>
+  <div class="card">
+    <table>
+      <tr><th>Engine</th><th>Intent (eval 320)</th><th>Off-template (20)</th><th>Latency</th><th>Footprint</th><th>Verdict</th></tr>
+      <tr><td>Hand-coded lexicon rules <span class="muted">(v1)</span></td>
+          <td class="num">99.1%</td><td class="num">n/m</td><td class="num">&lt;1 ms</td><td class="num">code</td>
+          <td class="bad">retired — semantics hardcoded in code, doesn't scale</td></tr>
+      <tr><td>TF-IDF char n-grams + LogReg <span class="muted">(v2)</span></td>
+          <td class="num">97.8%</td><td class="num">70.0%</td><td class="num">&lt;1 ms</td><td class="num">~1 MB</td>
+          <td>retired — excellent in-template, weak on paraphrases</td></tr>
+      <tr><td>model2vec potion-multilingual <span class="muted">(static embeddings)</span></td>
+          <td class="num">96.9%</td><td class="num">70.0%</td><td class="num">0.04 ms</td><td class="num">1 177 MB</td>
+          <td class="bad">rejected — no robustness gain, breaks memory budget</td></tr>
+      <tr><td>multilingual-e5-small</td>
+          <td class="num">92.5%</td><td class="num">70.0%</td><td class="num">14 ms</td><td class="num">756 MB</td>
+          <td class="bad">rejected — worst intent accuracy of the field</td></tr>
+      <tr><td>multilingual-e5-base</td>
+          <td class="num">95.0%</td><td class="num">75.0%</td><td class="num">35 ms</td><td class="num">748 MB</td>
+          <td class="bad">rejected — dominated by Gemma on every axis</td></tr>
+      <tr><td>EmbeddingGemma-300m fp32</td>
+          <td class="num">98.1%</td><td class="num"><b>100%</b></td><td class="num">74 ms</td><td class="num">~700 MB</td>
+          <td>quality reference — needs torch, too heavy to serve</td></tr>
+      <tr><td>EmbeddingGemma-300m int8 ONNX</td>
+          <td class="num">97.8%</td><td class="num">95.0%</td><td class="num bad">170 ms</td><td class="num bad">1.9 GB</td>
+          <td class="bad">rejected — int8 kernels slow on CPU</td></tr>
+      <tr><td><b>EmbeddingGemma-300m q4 ONNX</b> <span class="muted">(deployed, v3)</span></td>
+          <td class="num">97.5%</td><td class="num"><b>90.0%</b></td><td class="num good">36 ms <span class="muted">(52 ms p50 live)</span></td>
+          <td class="num good">~350 MB</td>
+          <td class="good">adopted — fp32 quality at a quarter of the footprint</td></tr>
+    </table>
+  </div>
+
+  <h2>Model bake-off: semantic retrieval</h2>
+  <p class="sub"><b>Semantic hit@5</b>: 18 hard paraphrase/dish cases ("omelette", "sonnenbrand was hilft",
+  "workout im wohnzimmer") where lexical matching fails by construction. <b>Literal retrieval</b>: the
+  320-example harness ground truth (strict tag/name match, 282 retrieval examples).</p>
+  <div class="card">
+    <table>
+      <tr><th>Retriever</th><th>Semantic hit@5</th><th>Literal Hit@5</th><th>MRR@5</th><th>NDCG@5</th><th>Role in production</th></tr>
+      <tr><td>BM25 over bilingual catalog tags</td>
+          <td class="num">10/18</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">0.993</td>
+          <td class="good">primary — unbeatable on exact matches at ~1 ms</td></tr>
+      <tr><td>model2vec potion-multilingual</td>
+          <td class="num">15/18</td><td class="num">0.979</td><td class="num">0.938</td><td class="num">0.942</td>
+          <td class="bad">rejected — missed the headline dishes (omelette, spiegelei)</td></tr>
+      <tr><td>multilingual-e5-small</td>
+          <td class="num">12/18</td><td class="num">0.975</td><td class="num">0.936</td><td class="num">0.936</td>
+          <td class="bad">rejected</td></tr>
+      <tr><td>multilingual-e5-base</td>
+          <td class="num">13/18</td><td class="num">1.000</td><td class="num">0.969</td><td class="num">0.972</td>
+          <td class="bad">rejected</td></tr>
+      <tr><td><b>EmbeddingGemma q4 cosine net</b> <span class="muted">(deployed)</span></td>
+          <td class="num good">17/18</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">0.998</td>
+          <td class="good">semantic net — confidence-gated (cosine ≥ 0.51) when BM25 has nothing and the LLM is off/failed</td></tr>
+      <tr><td>Gemini 2.5 Flash-Lite <span class="muted">(Vertex AI)</span></td>
+          <td class="num">18/18 <span class="muted">(qualitative)</span></td><td class="num">—</td><td class="num">—</td><td class="num">—</td>
+          <td>escalation tier — handles the long tail (incl. "spiegelei", Gemma's one miss) at ~0.4 s</td></tr>
+    </table>
+    <p class="muted" style="margin-bottom:0">The deployed system stacks these by cost: BM25 (~1 ms) → Gemma cosine
+    net (already-paid encode) → Gemini (~0.4 s) — each tier only handles what the cheaper one couldn't ground.</p>
+  </div>
+
   <h2>Architecture-level context</h2>
   <div class="card">
     <p style="margin:0">The strongest optimization remains <b>not calling the LLM</b>: a learned query classifier + concept-grouped BM25 answer every known-vocabulary query in ~1–2 ms, the LLM runs only on
