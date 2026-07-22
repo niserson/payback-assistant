@@ -57,7 +57,7 @@ def demo_notebook(base: str) -> nbf.NotebookNode:
            "`engine` field and the `user_context` interest profile accumulated by the five "
            "queries above (fed to the LLM with 30% weight)."),
         code("ask('Ich brauche etwas gegen wunden Po bei meinem Kleinkind')"),
-        md("### Bonus — engine modes: `off` (rules only) vs `always` (LLM on every query)\n"
+        md("### Bonus — engine modes: `off` (classifier only) vs `always` (LLM on every query)\n"
            "Same query through both engines. The classifier path answers known vocabulary in ~1–2 ms server-side; "
            "the optimized LLM path (thinking disabled, compact schema, regional Vertex endpoint — "
            "see [/optimization-report](/optimization-report)) adds ~0.4 s. `llm_mode` and `model` "

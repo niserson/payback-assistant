@@ -43,21 +43,26 @@ curl -X POST http://localhost:8080/assist \
 
 ```mermaid
 flowchart LR
-    U[User query de/en] --> API[FastAPI /assist]
-    API --> I[Learned classifier TF-IDF+LogReg<br/>intent, language, price, vagueness]
-    I -->|specific| R[BM25 retrieval]
-    I -->|vague| C[Clarifying question]
-    I -->|navigational| P[Partner-scoped search]
-    I -->|support| S[Support handoff]
-    subgraph Unified index - one BM25 over all partners
-        A[(Partner A: dm<br/>drugstore)]
-        B[(Partner B: EDEKA<br/>grocery)]
-        C3[(Partner C: Amazon<br/>long-tail)]
+    U[User query de/en] --> API[FastAPI /assist<br/>on Cloud Run]
+    CTX[(User context store<br/>interest % per category)] --- API
+    API --> CLS[Learned classifier TF-IDF+LogReg<br/>intent, language, price, vagueness]
+    CLS -->|grounded in catalog, ~1 ms| R[BM25 retrieval<br/>+ 30% interest boost]
+    CLS -->|unknown terms or llm_mode=always| LLM[Gemini 2.5 Flash-Lite via Vertex AI<br/>query 70% + user context 30%<br/>thinking off, compact JSON, ~0.4 s]
+    LLM -->|German catalog keywords| R
+    LLM -->|too vague| C[Clarifying question<br/>+ profile suggestions]
+    CLS -->|vague| C
+    CLS -->|partner named| P[Partner-scoped search]
+    CLS -->|support| S[Support handoff]
+    subgraph Ingestion - three partner taxonomies
+        A[(dm drugstore)]
+        B[(EDEKA grocery)]
+        C3[(Amazon long-tail)]
     end
-    A & B & C3 -->|ingestion: normalize, umlaut-fold,<br/>stem, field-weight| IDX[Inverted index over<br/>bilingual catalog tags]
+    A & B & C3 -->|normalize, fold, stem| IDX[(Unified BM25 index<br/>bilingual catalog tags)]
+    A & B & C3 -->|Vertex embeddings| BQ[(BigQuery products_dm/edeka/amazon<br/>VECTOR_SEARCH UNION ALL)]
     R --> IDX
     P --> IDX
-    IDX --> J[Structured JSON response]
+    R --> J[Structured JSON<br/>+ engine + user context]
     C --> J
     S --> J
 ```
