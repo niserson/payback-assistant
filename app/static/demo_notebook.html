@@ -7796,7 +7796,7 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=89fb6aa6">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=66d0ced4">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7848,7 +7848,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8fdc7ae0">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=baca5f3a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7882,7 +7882,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2ff4e499">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e65b7fa6">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7892,7 +7892,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e8177d82">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e3073be9">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7917,7 +7917,7 @@ a.anchor-link {
   "query": "Bitte zeige mir Angebote für günstige Windeln",
   "language": "de",
   "intent": "search",
-  "confidence": 0.85,
+  "confidence": 0.998,
   "action": {
     "type": "recommend",
     "detail": "Suchergebnisse über alle Partner-Kataloge."
@@ -7942,14 +7942,14 @@ a.anchor-link {
     }
   ],
   "clarifying_question": null,
-  "engine": "rules",
+  "engine": "classifier",
   "user_context": {
     "user_id": "demo-notebook",
     "interests": {
       "Baby &amp; Kind": 100.0
     }
   },
-  "latency_ms": 1.41
+  "latency_ms": 3.95
 }
 </pre>
 </div>
@@ -7957,7 +7957,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c80c51ac">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=cba574dd">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7967,7 +7967,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=475b49e0">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=b48ce1ac">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7992,57 +7992,13 @@ a.anchor-link {
   "query": "I need stuff for a pasta dinner",
   "language": "en",
   "intent": "search",
-  "confidence": 0.8,
+  "confidence": 0.942,
   "action": {
     "type": "recommend",
     "detail": "Search results across all partner catalogs."
   },
   "partner_filter": null,
   "products": [
-    {
-      "id": "edeka-020",
-      "partner": "edeka",
-      "name": "Spaghetti No.5",
-      "brand": "EDEKA Italia",
-      "category": "Nudeln &amp; Trockensortiment",
-      "price": 0.95,
-      "unit": "500 g",
-      "tags": [
-        "spaghetti",
-        "nudeln",
-        "pasta"
-      ],
-      "score": 7.159
-    },
-    {
-      "id": "edeka-021",
-      "partner": "edeka",
-      "name": "Penne Rigate",
-      "brand": "EDEKA Italia",
-      "category": "Nudeln &amp; Trockensortiment",
-      "price": 0.96,
-      "unit": "500 g",
-      "tags": [
-        "penne",
-        "nudeln",
-        "pasta"
-      ],
-      "score": 6.883
-    },
-    {
-      "id": "edeka-022",
-      "partner": "edeka",
-      "name": "Basmati Reis",
-      "brand": "EDEKA",
-      "category": "Nudeln &amp; Trockensortiment",
-      "price": 2.39,
-      "unit": "1 kg",
-      "tags": [
-        "reis",
-        "rice"
-      ],
-      "score": 3.649
-    },
     {
       "id": "amazon-010",
       "partner": "amazon",
@@ -8075,20 +8031,70 @@ a.anchor-link {
         "pasta"
       ],
       "score": 3.066
+    },
+    {
+      "id": "edeka-006",
+      "partner": "edeka",
+      "name": "Knoblauch",
+      "brand": "EDEKA",
+      "category": "Obst &amp; Gemüse",
+      "price": 0.81,
+      "unit": "3 St",
+      "tags": [
+        "knoblauch",
+        "garlic",
+        "gemüse",
+        "pasta"
+      ],
+      "score": 3.06
+    },
+    {
+      "id": "edeka-017",
+      "partner": "edeka",
+      "name": "Rinderhackfleisch",
+      "brand": "EDEKA",
+      "category": "Fleisch &amp; Fisch",
+      "price": 4.76,
+      "unit": "500 g",
+      "tags": [
+        "hackfleisch",
+        "ground beef",
+        "fleisch",
+        "bolognese",
+        "pasta"
+      ],
+      "score": 2.986
+    },
+    {
+      "id": "edeka-020",
+      "partner": "edeka",
+      "name": "Spaghetti No.5",
+      "brand": "EDEKA Italia",
+      "category": "Nudeln &amp; Trockensortiment",
+      "price": 0.95,
+      "unit": "500 g",
+      "tags": [
+        "spaghetti",
+        "nudeln",
+        "pasta"
+      ],
+      "score": 2.912
     }
   ],
   "clarifying_question": null,
-  "engine": "rules+gemini-2.5-flash-lite@vertex-ai",
+  "engine": "classifier+gemini-2.5-flash-lite@vertex-ai",
   "user_context": {
     "user_id": "demo-notebook",
     "interests": {
-      "Nudeln &amp; Trockensortiment": 50.0,
       "Baby &amp; Kind": 16.7,
       "Bücher &amp; Medien": 16.7,
-      "Käse": 16.7
+      "Käse": 16.7,
+      "Obst &amp; Gemüse": 16.7,
+      "Fleisch &amp; Fisch": 16.7,
+      "Nudeln &amp; Trockensortiment": 16.7
     }
   },
-  "latency_ms": 636.79
+  "latency_ms": 652.18
 }
 </pre>
 </div>
@@ -8096,7 +8102,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fa907683">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=11101f44">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8106,7 +8112,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d5ee1f2a">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=7440a3b2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8131,7 +8137,7 @@ a.anchor-link {
   "query": "Suche Shampoo bei dm",
   "language": "de",
   "intent": "search",
-  "confidence": 0.85,
+  "confidence": 0.987,
   "action": {
     "type": "route_to_partner",
     "detail": "Weiterleitung zur Partner-Suche: dm."
@@ -8155,18 +8161,20 @@ a.anchor-link {
     }
   ],
   "clarifying_question": null,
-  "engine": "rules",
+  "engine": "classifier+gemini-2.5-flash-lite@vertex-ai",
   "user_context": {
     "user_id": "demo-notebook",
     "interests": {
-      "Nudeln &amp; Trockensortiment": 42.9,
       "Baby &amp; Kind": 14.3,
       "Bücher &amp; Medien": 14.3,
       "Käse": 14.3,
+      "Obst &amp; Gemüse": 14.3,
+      "Fleisch &amp; Fisch": 14.3,
+      "Nudeln &amp; Trockensortiment": 14.3,
       "Haarpflege": 14.3
     }
   },
-  "latency_ms": 0.41
+  "latency_ms": 414.06
 }
 </pre>
 </div>
@@ -8174,7 +8182,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fe662e1b">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=88c51820">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8184,7 +8192,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9b4950c1">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f7356997">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8209,7 +8217,7 @@ a.anchor-link {
   "query": "Was ist besser: Bio-Olivenöl oder normales Olivenöl?",
   "language": "de",
   "intent": "comparison",
-  "confidence": 0.8,
+  "confidence": 0.755,
   "action": {
     "type": "compare",
     "detail": "Vergleich der besten Treffer über alle Partner (Preis pro Einheit beachten)."
@@ -8300,21 +8308,23 @@ a.anchor-link {
     }
   ],
   "clarifying_question": null,
-  "engine": "rules",
+  "engine": "classifier",
   "user_context": {
     "user_id": "demo-notebook",
     "interests": {
-      "Nudeln &amp; Trockensortiment": 25.0,
       "Baby &amp; Kind": 16.7,
       "Molkerei &amp; Eier": 16.7,
       "Bücher &amp; Medien": 8.3,
       "Käse": 8.3,
+      "Obst &amp; Gemüse": 8.3,
+      "Fleisch &amp; Fisch": 8.3,
+      "Nudeln &amp; Trockensortiment": 8.3,
       "Haarpflege": 8.3,
       "Konserven &amp; Saucen": 8.3,
       "Frühstück": 8.3
     }
   },
-  "latency_ms": 1.13
+  "latency_ms": 3.64
 }
 </pre>
 </div>
@@ -8322,7 +8332,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8eab352c">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b8d1b5d2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8332,7 +8342,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=b3106b28">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e70b3f7a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8357,7 +8367,7 @@ a.anchor-link {
   "query": "Ich habe ein Problem mit meinen PAYBACK Punkten",
   "language": "de",
   "intent": "customer_support",
-  "confidence": 0.9,
+  "confidence": 0.751,
   "action": {
     "type": "support_handoff",
     "detail": "Das klingt nach einem Anliegen für unseren Kundenservice. Ich leite dich weiter: PAYBACK Service unter 089 / 996 331 60 oder im Hilfe-Center der App (Konto → Hilfe)."
@@ -8365,21 +8375,23 @@ a.anchor-link {
   "partner_filter": null,
   "products": [],
   "clarifying_question": null,
-  "engine": "rules",
+  "engine": "classifier",
   "user_context": {
     "user_id": "demo-notebook",
     "interests": {
-      "Nudeln &amp; Trockensortiment": 25.0,
       "Baby &amp; Kind": 16.7,
       "Molkerei &amp; Eier": 16.7,
       "Bücher &amp; Medien": 8.3,
       "Käse": 8.3,
+      "Obst &amp; Gemüse": 8.3,
+      "Fleisch &amp; Fisch": 8.3,
+      "Nudeln &amp; Trockensortiment": 8.3,
       "Haarpflege": 8.3,
       "Konserven &amp; Saucen": 8.3,
       "Frühstück": 8.3
     }
   },
-  "latency_ms": 0.2
+  "latency_ms": 2.84
 }
 </pre>
 </div>
@@ -8387,17 +8399,17 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fb7c2bf2">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=eca46e06">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Bonus-%E2%80%94-LLM-escalation-+-user-context">Bonus — LLM escalation + user context<a class="anchor-link" href="#Bonus-%E2%80%94-LLM-escalation-+-user-context">¶</a></h3><p>A paraphrase the lexicon cannot parse escalates to Gemini on Vertex AI; note the <code>engine</code> field and the <code>user_context</code> interest profile accumulated by the five queries above (fed to the LLM with 30% weight).</p>
+<h3 id="Bonus-%E2%80%94-LLM-escalation-+-user-context">Bonus — LLM escalation + user context<a class="anchor-link" href="#Bonus-%E2%80%94-LLM-escalation-+-user-context">¶</a></h3><p>A paraphrase the catalog vocabulary cannot ground escalates to Gemini on Vertex AI; note the <code>engine</code> field and the <code>user_context</code> interest profile accumulated by the five queries above (fed to the LLM with 30% weight).</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=0687cbb5">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=023b1f87">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8422,28 +8434,13 @@ a.anchor-link {
   "query": "Ich brauche etwas gegen wunden Po bei meinem Kleinkind",
   "language": "de",
   "intent": "search",
-  "confidence": 0.8,
+  "confidence": 0.396,
   "action": {
     "type": "recommend",
     "detail": "Suchergebnisse über alle Partner-Kataloge."
   },
   "partner_filter": null,
   "products": [
-    {
-      "id": "dm-018",
-      "partner": "dm",
-      "name": "After Sun Lotion",
-      "brand": "Sundance",
-      "category": "Sonnenschutz",
-      "price": 3.28,
-      "unit": "200 ml",
-      "tags": [
-        "after sun",
-        "sonne",
-        "haut"
-      ],
-      "score": 5.244
-    },
     {
       "id": "dm-002",
       "partner": "dm",
@@ -8460,35 +8457,6 @@ a.anchor-link {
       "score": 4.802
     },
     {
-      "id": "dm-010",
-      "partner": "dm",
-      "name": "Handcreme Kamille",
-      "brand": "Balea",
-      "category": "Körperpflege",
-      "price": 1.19,
-      "unit": "100 ml",
-      "tags": [
-        "handcreme",
-        "hand cream"
-      ],
-      "score": 4.719
-    },
-    {
-      "id": "dm-009",
-      "partner": "dm",
-      "name": "Bodylotion Urea",
-      "brand": "Balea",
-      "category": "Körperpflege",
-      "price": 2.23,
-      "unit": "400 ml",
-      "tags": [
-        "bodylotion",
-        "body lotion",
-        "haut"
-      ],
-      "score": 4.638
-    },
-    {
       "id": "dm-003",
       "partner": "dm",
       "name": "Babybrei Pastinake",
@@ -8503,26 +8471,77 @@ a.anchor-link {
         "organic"
       ],
       "score": 4.57
+    },
+    {
+      "id": "dm-004",
+      "partner": "dm",
+      "name": "Schnuller Silikon 2er",
+      "brand": "babylove",
+      "category": "Baby &amp; Kind",
+      "price": 3.16,
+      "unit": "2 St",
+      "tags": [
+        "schnuller",
+        "pacifier",
+        "baby"
+      ],
+      "score": 4.494
+    },
+    {
+      "id": "dm-001",
+      "partner": "dm",
+      "name": "Windeln Größe 4 Maxi",
+      "brand": "babylove",
+      "category": "Baby &amp; Kind",
+      "price": 5.02,
+      "unit": "42 St",
+      "tags": [
+        "windeln",
+        "diapers",
+        "baby",
+        "wickeln"
+      ],
+      "score": 4.102
+    },
+    {
+      "id": "amazon-019",
+      "partner": "amazon",
+      "name": "Holzbausteine 100 Teile",
+      "brand": "Eichhorn",
+      "category": "Spielzeug &amp; Spiele",
+      "price": 19.43,
+      "unit": "100 St",
+      "tags": [
+        "bausteine",
+        "building blocks",
+        "spielzeug",
+        "toy",
+        "kinder",
+        "baby",
+        "geschenk"
+      ],
+      "score": 3.04
     }
   ],
   "clarifying_question": null,
-  "engine": "rules+gemini-2.5-flash-lite@vertex-ai",
+  "engine": "classifier+gemini-2.5-flash-lite@vertex-ai",
   "user_context": {
     "user_id": "demo-notebook",
     "interests": {
-      "Baby &amp; Kind": 23.5,
-      "Nudeln &amp; Trockensortiment": 17.6,
+      "Baby &amp; Kind": 35.3,
       "Molkerei &amp; Eier": 11.8,
-      "Körperpflege": 11.8,
       "Bücher &amp; Medien": 5.9,
       "Käse": 5.9,
+      "Obst &amp; Gemüse": 5.9,
+      "Fleisch &amp; Fisch": 5.9,
+      "Nudeln &amp; Trockensortiment": 5.9,
       "Haarpflege": 5.9,
       "Konserven &amp; Saucen": 5.9,
       "Frühstück": 5.9,
-      "Sonnenschutz": 5.9
+      "Spielzeug &amp; Spiele": 5.9
     }
   },
-  "latency_ms": 386.24
+  "latency_ms": 356.42
 }
 </pre>
 </div>
@@ -8530,17 +8549,17 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=27933b59">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ab1a41ae">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Bonus-%E2%80%94-engine-modes:-off-(rules-only)-vs-always-(LLM-on-every-query)">Bonus — engine modes: <code>off</code> (rules only) vs <code>always</code> (LLM on every query)<a class="anchor-link" href="#Bonus-%E2%80%94-engine-modes:-off-(rules-only)-vs-always-(LLM-on-every-query)">¶</a></h3><p>Same query through both engines. Rules answer known vocabulary in ~1–2 ms server-side; the optimized LLM path (thinking disabled, compact schema, regional Vertex endpoint — see <a href="/optimization-report">/optimization-report</a>) adds ~0.4 s. <code>llm_mode</code> and <code>model</code> are per-request API fields.</p>
+<h3 id="Bonus-%E2%80%94-engine-modes:-off-(rules-only)-vs-always-(LLM-on-every-query)">Bonus — engine modes: <code>off</code> (rules only) vs <code>always</code> (LLM on every query)<a class="anchor-link" href="#Bonus-%E2%80%94-engine-modes:-off-(rules-only)-vs-always-(LLM-on-every-query)">¶</a></h3><p>Same query through both engines. The classifier path answers known vocabulary in ~1–2 ms server-side; the optimized LLM path (thinking disabled, compact schema, regional Vertex endpoint — see <a href="/optimization-report">/optimization-report</a>) adds ~0.4 s. <code>llm_mode</code> and <code>model</code> are per-request API fields.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=12b47fae">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=044fc3c8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8568,7 +8587,7 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>llm_mode=off    server=    1.0 ms  engine=rules
+<pre>llm_mode=off    server=    3.6 ms  engine=classifier
   -&gt; Tiefkühlpizza Salami, Schokolade Vollmilch, Gummibärchen Goldbären
 </pre>
 </div>
@@ -8576,8 +8595,8 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>llm_mode=always server=  384.4 ms  engine=rules+gemini-2.5-flash-lite@vertex-ai
-  -&gt; Tiefkühlpizza Salami, Gummibärchen Goldbären, Schokolade Vollmilch
+<pre>llm_mode=always server=  639.6 ms  engine=classifier+gemini-2.5-flash-lite@vertex-ai
+  -&gt; 
 </pre>
 </div>
 </div>

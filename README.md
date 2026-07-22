@@ -8,16 +8,17 @@ and returns a structured JSON response: either **recommended products** retrieve
 three partner ecosystems, a **clarifying question**, a **partner route**, or a
 **support handoff**.
 
-Built deliberately minimal (Occam's razor): pure-Python BM25 + bilingual synonym
-expansion + rule-based intent rules. No model downloads, no GPU, cold starts in
-milliseconds, and every decision is auditable. The module boundaries (`intent`,
+Built deliberately minimal (Occam's razor): a learned query classifier (TF-IDF +
+logistic regression — no hand-coded lexicons, trained from synthetic labeled data at
+build time) + pure-Python BM25 over the catalogs' own bilingual tags. No torch, no
+GPU, cold starts in milliseconds, and every decision is auditable. The module boundaries (`intent`,
 `retrieval`, `agent`) are clean seams where an LLM or embedding model can be swapped
 in later without touching the API contract.
 
-**Hybrid understanding:** deterministic rules answer everything they can in ~0.2 ms;
+**Hybrid understanding:** the deterministic classifier path answers everything it can in ~1 ms;
 only queries with no retrievable product term escalate to Gemini (Vertex AI on Cloud
 Run, AI Studio locally), which translates the need into German catalog keywords or a
-clarifying question — with silent fallback to rules if the LLM is unavailable. A
+clarifying question — with silent fallback to the classifier if the LLM is unavailable. A
 built-in chat UI is served at `/`.
 
 ## Quickstart (local, no Docker needed)
@@ -43,7 +44,7 @@ curl -X POST http://localhost:8080/assist \
 ```mermaid
 flowchart LR
     U[User query de/en] --> API[FastAPI /assist]
-    API --> I[Intent + language detection<br/>rule-based, deterministic]
+    API --> I[Learned classifier TF-IDF+LogReg<br/>intent, language, price, vagueness]
     I -->|specific| R[BM25 retrieval]
     I -->|vague| C[Clarifying question]
     I -->|navigational| P[Partner-scoped search]
@@ -53,7 +54,7 @@ flowchart LR
         B[(Partner B: EDEKA<br/>grocery)]
         C3[(Partner C: Amazon<br/>long-tail)]
     end
-    A & B & C3 -->|ingestion: normalize, umlaut-fold,<br/>stem, field-weight| IDX[Inverted index +<br/>de-en synonym layer]
+    A & B & C3 -->|ingestion: normalize, umlaut-fold,<br/>stem, field-weight| IDX[Inverted index over<br/>bilingual catalog tags]
     R --> IDX
     P --> IDX
     IDX --> J[Structured JSON response]
@@ -65,8 +66,9 @@ flowchart LR
 catalog is normalized into one shared product schema (`id, partner, name, brand,
 category, price, unit, tags, popularity`) at ingestion and indexed into a **single**
 inverted index with field weighting (name > brand/tags > category). A query is
-tokenized, umlaut-folded, lightly stemmed, and expanded through a German↔English
-synonym table, then scored with Okapi BM25 across **all** partners at once — the
+tokenized, umlaut/digraph-folded and lightly stemmed, then scored with Okapi BM25
+across **all** partners at once — cross-lingual matching comes from the catalogs'
+own bilingual tags, and terms outside the catalog vocabulary escalate to the LLM — the
 `partner` field is just a filter, applied only for navigational queries. Ranking
 blends BM25 relevance (85%) with a global popularity prior (15%) and a low-price boost
 when the query signals price sensitivity ("günstig", "cheap", "Angebote").
@@ -116,9 +118,8 @@ Response shape (see `app/schemas.py`):
 | Detected | Action |
 |---|---|
 | Specific product need | `recommend` — cross-partner BM25 search |
-| Vague need | `clarify` — targeted question (e.g. organic preference, budget) |
+| Vague need | `clarify` — question, plus interest-based suggestions when history exists |
 | Partner mentioned (dm/EDEKA/Amazon) | `route_to_partner` — partner-scoped search |
-| Theme need ("pasta dinner", "Frühstück") | `recommend` — theme basket across partners |
 | Comparison ("besser", "oder", "vs") | `compare` — side-by-side of top matches |
 | Support ("Problem", "Punkte", "refund") | `support_handoff` |
 
@@ -144,9 +145,9 @@ All three preferred services are exercised:
 - **Vertex AI (model serving)** — in the cloud the LLM path calls Gemini through the
   Vertex AI endpoint, authenticated by the Cloud Run *service account* via the metadata
   server (`VERTEX_PROJECT` env var; no API keys deployed). Locally, set
-  `GEMINI_API_KEY` to use AI Studio instead; with neither, the service runs rules-only.
+  `GEMINI_API_KEY` to use AI Studio instead; with neither, the service runs classifier-only.
   Responses expose which path answered via the `engine` field
-  (`rules` vs `rules+gemini-2.5-flash-lite@vertex-ai`).
+  (`classifier` vs `classifier+gemini-2.5-flash-lite@vertex-ai`).
 - **BigQuery (vector search)** — `scripts/bigquery_vector_search.py --project <id> "<query>"`
   embeds all partner catalogs with Vertex AI `text-embedding-005`, loads them into
   `payback_assistant.products`, and runs a semantic `VECTOR_SEARCH` (cosine). Verified:
@@ -179,12 +180,12 @@ latency is the p50/p95 band.)
 ## Performance report
 
 Latency was minimized by *removing* inference from the hot path rather than optimizing
-it: intent detection is a deterministic lexicon pass (O(query length)) and retrieval is
+it: intent detection is a learned linear classifier (~0.3 ms) and retrieval is
 BM25 over a pre-built in-memory inverted index (O(query terms × candidate postings)),
 so end-to-end handler time is well under a millisecond and total response time is
-dominated by HTTP overhead. The synonym expansion table replaces a multilingual
-embedding model — the single biggest latency/cost win — while keeping German↔English
-recall on this catalog size. The index is built once at startup (not per request), the
+dominated by HTTP overhead. Bilingual catalog tags plus algorithmic folding replace a
+multilingual embedding model — the single biggest latency/cost win — while keeping
+German↔English recall at this catalog size (verified by the evaluation harness). The index is built once at startup (not per request), the
 catalog is baked into the image (no cold-start I/O), and the service is stateless so
 Cloud Run can scale it horizontally with concurrency 80 per instance. If semantic
 recall ever requires an LLM/embedding step, the plan is: cache embeddings offline in
@@ -198,8 +199,9 @@ app/
   main.py       FastAPI app (endpoints, logging, error shielding)
   schemas.py    Pydantic contract
   catalog.py    synthetic 3-partner catalog (seeded, reproducible)
-  retrieval.py  BM25 index, de-en synonyms, cold-start ranking
-  intent.py     language + intent detection (rule-based)
+  retrieval.py  BM25 index over bilingual catalog tags, cold-start ranking
+  intent.py     query understanding (learned classifier + index-grounded signals)
+  intent_model.py  TF-IDF+LogReg training/inference (intent, language, price, vague)
   agent.py      next-best-action policy
 tests/          unit + e2e tests (pytest)
 demo.py         5+ queries -> JSON output
@@ -217,7 +219,7 @@ and a metrics runner. Ground-truth relevance is independent of the retriever (li
 tag/name match only), so the normalization + synonym layers earn their scores.
 
 ```bash
-python -m evaluation.harness    # full report in <2s (deterministic rules path)
+python -m evaluation.harness    # full report in <5s (deterministic classifier path)
 ```
 
 Current results: intent 99.1%, language 99.7%, action 99.1%, partner routing 100%,

@@ -1,10 +1,14 @@
-"""Cross-catalog retrieval: pure-Python BM25 with a German<->English synonym layer.
+"""Cross-catalog retrieval: pure-Python BM25 over the catalogs' own vocabulary.
 
 Design choice (Occam's razor): the corpus is small and vocabulary-dense, so lexical
-BM25 + bilingual query expansion beats an embedding stack on latency, determinism
-and operational weight — no model download, sub-millisecond queries, trivially
-containerizable. Cold start is inherent: ranking uses only the query context plus
-a global popularity prior (no user history anywhere).
+BM25 beats an embedding stack on latency, determinism and operational weight — no
+model download, sub-millisecond queries, trivially containerizable.
+
+No hand-coded semantics: cross-lingual matching comes from the catalog's own
+bilingual tags (data), normalization (umlaut/digraph folding + light stemming) is
+algorithmic, and anything outside the catalog vocabulary escalates to the LLM,
+which translates it into catalog terms. Cold start is inherent: ranking uses only
+the query context plus a global popularity prior (no user history anywhere).
 """
 
 import math
@@ -12,69 +16,6 @@ import re
 import unicodedata
 from collections import Counter
 from typing import Dict, List, Optional
-
-# Bilingual expansion: each group is a set of interchangeable tokens (de <-> en).
-_SYNONYM_GROUPS = [
-    {"windeln", "windel", "diapers", "diaper"},
-    {"feuchttücher", "wipes"},
-    {"schnuller", "pacifier"},
-    {"shampoo", "haarshampoo"},
-    {"zahnpasta", "toothpaste"},
-    {"zahnbürste", "toothbrush"},
-    {"sonnencreme", "sunscreen"},
-    {"waschmittel", "detergent"},
-    {"nudeln", "nudel", "pasta", "spaghetti", "penne"},
-    {"tomaten", "tomate", "tomatoes", "tomato"},
-    {"käse", "cheese", "parmesan"},
-    {"olivenöl", "olive", "öl", "oil"},
-    {"knoblauch", "garlic"},
-    {"zwiebeln", "zwiebel", "onions", "onion"},
-    {"eier", "ei", "eggs", "egg"},
-    {"milch", "milk"},
-    {"brot", "bread"},
-    {"äpfel", "apfel", "apples", "apple"},
-    {"obst", "fruit", "früchte"},
-    {"gemüse", "vegetables"},
-    {"fleisch", "meat"},
-    {"hähnchen", "chicken"},
-    {"hackfleisch", "beef", "bolognese"},
-    {"lachs", "salmon", "fisch", "fish"},
-    {"kaffee", "coffee"},
-    {"frühstück", "breakfast", "müsli", "muesli", "cereal"},
-    {"kopfhörer", "headphones", "headphone"},
-    {"buch", "bücher", "book", "books", "roman", "novel", "lesen", "reading"},
-    {"spielzeug", "toy", "toys"},
-    {"geschenk", "gift", "present", "geschenkidee"},
-    {"kinder", "kids", "children", "kind"},
-    {"baby", "babys"},
-    {"küche", "kitchen", "kochen", "cooking"},
-    {"pfanne", "pan"},
-    {"messer", "knife", "knives"},
-    {"lampe", "lamp", "licht", "light"},
-    {"wasser", "water"},
-    {"bio", "organic", "öko"},
-    {"grillen", "bbq", "grill", "barbecue", "bratwurst"},
-    {"sport", "fitness"},
-    {"joghurt", "yogurt", "yoghurt"},
-    {"süßigkeiten", "sweets", "candy", "naschen", "schokolade", "chocolate", "gummibärchen"},
-    {"kuchen", "cake", "torte", "gebäck"},
-    {"backen", "baking", "backmischung"},
-    {"pizza", "tiefkühlpizza"},
-    {"avocadobrot", "avocado", "brot"},
-    {"mehl", "flour"},
-    {"zucker", "sugar"},
-    {"butter"},
-    {"honig", "honey"},
-    {"haut", "skin", "creme", "cream", "lotion"},
-]
-
-_SYNONYMS: Dict[str, set] = {}
-for group in _SYNONYM_GROUPS:
-    for token in group:
-        _SYNONYMS.setdefault(token, set()).update(group)
-
-CHEAP_TOKENS = {"günstig", "günstige", "billig", "billige", "cheap", "budget", "angebot", "angebote", "deal", "deals", "offer", "offers", "sale"}
-
 _WORD_RE = re.compile(r"[a-zA-ZäöüÄÖÜß0-9]+")
 
 
@@ -110,33 +51,32 @@ def _index_forms(token: str) -> List[str]:
     return list({folded, _stem(folded)})
 
 
+def fold_token(token: str) -> str:
+    """Public canonical form of a single token (folded + stemmed)."""
+    return _stem(_fold(token))
+
+
 def expand_query(tokens: List[str]) -> List[str]:
-    """Expand query tokens with bilingual synonyms, then fold/stem everything."""
-    expanded = []
-    for token in tokens:
-        expanded.append(token)
-        expanded.extend(_SYNONYMS.get(token, ()))
+    """Fold/stem query tokens into their searchable forms."""
     forms = []
-    for token in expanded:
+    for token in tokens:
         forms.extend(_index_forms(token))
     return forms
 
 
-def concept_groups(tokens: List[str]) -> List[frozenset]:
-    """One searchable form-set per query CONCEPT (token + its synonyms).
+def concept_groups(tokens: List[str], stopwords: Optional[set] = None) -> List[frozenset]:
+    """One searchable form-set per query CONCEPT (query token).
 
-    Scoring per concept (best matching form) instead of per expanded term keeps a
-    single concept with many synonyms ("frühstück" -> müsli/cereal/breakfast) from
-    drowning out other concepts in the query ("eier").
+    Scoring per concept (best matching form) instead of per raw term keeps one
+    token with several matching forms from drowning out other concepts. Function
+    words (learned from training-corpus document frequency, passed by the caller)
+    are not concepts.
     """
     groups = set()
     for token in tokens:
-        if token in CHEAP_TOKENS:
-            continue  # price sensitivity is a ranking modifier, not a concept
-        forms = set(_index_forms(token))
-        for synonym in _SYNONYMS.get(token, ()):
-            forms.update(_index_forms(synonym))
-        groups.add(frozenset(forms))
+        if stopwords and fold_token(token) in stopwords:
+            continue
+        groups.add(frozenset(_index_forms(token)))
     return list(groups)
 
 
@@ -182,10 +122,14 @@ class BM25Index:
         return self._idf(term) * norm
 
     def search(self, query: str, top_k: int = 5, partner: Optional[str] = None,
-               interests: Optional[Dict[str, float]] = None) -> List[dict]:
-        raw_tokens = tokenize(query)
-        groups = concept_groups(raw_tokens)
-        wants_cheap = any(t in CHEAP_TOKENS for t in raw_tokens)
+               interests: Optional[Dict[str, float]] = None,
+               price_sensitive: bool = False,
+               stopwords: Optional[set] = None) -> List[dict]:
+        if stopwords is None:
+            # Learned function words from the intent model (lazy: avoids an import cycle).
+            from .intent_model import get_model
+            stopwords = get_model().stopwords
+        groups = concept_groups(tokenize(query), stopwords)
 
         scored = []
         for i, product in enumerate(self.products):
@@ -199,7 +143,7 @@ class BM25Index:
             best_concept = max(range(len(concept_scores)), key=lambda c: concept_scores[c])
             # Cold-start blend: query relevance dominates, global popularity breaks ties.
             final = score * 0.85 + product["popularity"] * 2.0 * 0.15
-            if wants_cheap:
+            if price_sensitive:
                 final += (1 - self._price_rank[product["id"]]) * 1.5
             if interests:
                 # User-context rank boost: 30% weight, scaled by the user's percentage

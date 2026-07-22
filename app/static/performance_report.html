@@ -7796,7 +7796,7 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=af349e7d">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a13a8ae0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7806,7 +7806,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=fc788ab5">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=574ceabe">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7818,7 +7818,7 @@ a.anchor-link {
 <span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
 <span class="n">BASE</span> <span class="o">=</span> <span class="s1">'https://payback-assistant-506488371374.europe-west3.run.app'</span>
 <span class="n">QUERIES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'günstige Windeln'</span><span class="p">,</span> <span class="s1">'Suche Shampoo bei dm'</span><span class="p">,</span> <span class="s1">'pasta tomaten parmesan'</span><span class="p">,</span>
-           <span class="s1">'Schokolade und Chips'</span><span class="p">,</span> <span class="s1">'Mineralwasser 6er'</span><span class="p">]</span>  <span class="c1"># rules path = steady-state hot path</span>
+           <span class="s1">'Schokolade und Chips'</span><span class="p">,</span> <span class="s1">'Mineralwasser 6er'</span><span class="p">]</span>  <span class="c1"># classifier path = steady-state hot path</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">run_load</span><span class="p">(</span><span class="n">n_requests</span><span class="p">,</span> <span class="n">concurrency</span><span class="p">):</span>
     <span class="n">latencies</span><span class="p">,</span> <span class="n">errors</span> <span class="o">=</span> <span class="p">[],</span> <span class="mi">0</span>
     <span class="n">session</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
@@ -7862,7 +7862,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a26c32f9">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3c9bf1f8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7872,7 +7872,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=b4d4aeb8">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=cb8e7fb2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7895,27 +7895,27 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{'requests': 150, 'concurrency': 5, 'errors': 0, 'wall_s': 4.69, 'rps': 32.0, 'p50_ms': 138.3, 'p95_ms': 155.0, 'p99_ms': 602.2}
-{'requests': 150, 'concurrency': 20, 'errors': 0, 'wall_s': 2.71, 'rps': 55.3, 'p50_ms': 145.6, 'p95_ms': 1622.0, 'p99_ms': 1634.8}
-{'requests': 150, 'concurrency': 40, 'errors': 0, 'wall_s': 3.24, 'rps': 46.3, 'p50_ms': 202.4, 'p95_ms': 2490.9, 'p99_ms': 2660.0}
+<pre>{'requests': 150, 'concurrency': 5, 'errors': 0, 'wall_s': 7.55, 'rps': 19.9, 'p50_ms': 139.7, 'p95_ms': 628.3, 'p99_ms': 954.4}
+{'requests': 150, 'concurrency': 20, 'errors': 0, 'wall_s': 3.74, 'rps': 40.1, 'p50_ms': 190.5, 'p95_ms': 1741.9, 'p99_ms': 2120.6}
+{'requests': 150, 'concurrency': 40, 'errors': 0, 'wall_s': 4.39, 'rps': 34.2, 'p50_ms': 331.8, 'p95_ms': 3243.9, 'p99_ms': 3763.4}
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a6a89a6f">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=cae9a772">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h2 id="LLM-model-tiers:-server-side-latency-per-Gemini-model">LLM model tiers: server-side latency per Gemini model<a class="anchor-link" href="#LLM-model-tiers:-server-side-latency-per-Gemini-model">¶</a></h2><p>Same paraphrase queries, <code>llm_mode: always</code>, measured via the response's own <code>latency_ms</code> (server-side handler time incl. the Vertex AI call — network round-trip to the client excluded).</p>
-<p><strong>LLM used</strong> counts responses whose <code>engine</code> shows the model actually answered; the remainder hit the service's 6 s LLM timeout (plus one retry) and fell back to the deterministic rules path — the ~12 s latencies of slow tiers are the two exhausted timeouts, not usable inference. <code>always</code> means <em>always attempt</em> the LLM; the timeout guard means the API still answers when a tier can't keep up.</p>
+<p><strong>LLM used</strong> counts responses whose <code>engine</code> shows the model actually answered; the remainder hit the service's 6 s LLM timeout (plus one retry) and fell back to the deterministic classifier path — the ~12 s latencies of slow tiers are the two exhausted timeouts, not usable inference. <code>always</code> means <em>always attempt</em> the LLM; the timeout guard means the API still answers when a tier can't keep up.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f95b913f">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8a04759f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7938,7 +7938,7 @@ a.anchor-link {
         <span class="n">used</span> <span class="o">+=</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">r</span><span class="p">[</span><span class="s1">'engine'</span><span class="p">]</span>  <span class="c1"># engine names the model only when it answered</span>
     <span class="n">lats</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
     <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">PARAPHRASES</span><span class="p">)</span>
-    <span class="n">verdict</span> <span class="o">=</span> <span class="s1">'ok'</span> <span class="k">if</span> <span class="n">used</span> <span class="o">==</span> <span class="n">n</span> <span class="k">else</span> <span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">used</span><span class="si">}</span><span class="s1"> timeout fallback(s) to rules'</span><span class="p">)</span>
+    <span class="n">verdict</span> <span class="o">=</span> <span class="s1">'ok'</span> <span class="k">if</span> <span class="n">used</span> <span class="o">==</span> <span class="n">n</span> <span class="k">else</span> <span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">used</span><span class="si">}</span><span class="s1"> timeout fallback(s) to deterministic path'</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">m</span><span class="si">:</span><span class="s1">26</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">lats</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">lats</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="p">]</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">lats</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">statistics</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">lats</span><span class="p">)</span><span class="si">:</span><span class="s1">8.0f</span><span class="si">}</span><span class="s1"> '</span>
           <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">used</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">n</span><span class="si">:</span><span class="s1">&gt;3</span><span class="si">}</span><span class="s1">  </span><span class="si">{</span><span class="n">verdict</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
 </pre></div>
@@ -7960,35 +7960,35 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>gemini-2.5-flash-lite           410      455      383 6/  6  ok
+<pre>gemini-2.5-flash-lite           357      404      360 6/  6  ok
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>gemini-2.5-flash                613      700      600 6/  6  ok
+<pre>gemini-2.5-flash                636      822      641 6/  6  ok
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>gemini-3.1-flash-lite          1337     4931     1763 6/  6  ok
+<pre>gemini-3.1-flash-lite          1158     2586     1370 6/  6  ok
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>gemini-3.5-flash               4008    12380     5256 0/  6  6 timeout fallback(s) to rules
+<pre>gemini-3.5-flash               4297     4533     4042 0/  6  6 timeout fallback(s) to deterministic path
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c7f74d6a">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=48600a8d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7998,7 +7998,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=64860da8">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f00c7b8e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8026,15 +8026,15 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>first call : 338 ms  (rules+gemini-2.5-flash-lite@vertex-ai)
-repeat call: 0 ms  (served from cache)
+<pre>first call : 468 ms  (classifier+gemini-2.5-flash-lite@vertex-ai)
+repeat call: 3 ms  (served from cache)
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=955981a6">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=19a1b6e3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8044,7 +8044,7 @@ repeat call: 0 ms  (served from cache)
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=6453cd27">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=74da3878">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8071,29 +8071,29 @@ repeat call: 0 ms  (served from cache)
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>cost per 1000 requests at 0% LLM escalation: $0.0009
-cost per 1000 requests at 10% LLM escalation: $0.0103
-cost per 1000 requests at 25% LLM escalation: $0.0244
+<pre>cost per 1000 requests at 0% LLM escalation: $0.0010
+cost per 1000 requests at 10% LLM escalation: $0.0104
+cost per 1000 requests at 25% LLM escalation: $0.0245
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5afd64ca">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3d000336">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="How-prompt/inference-time-was-optimized">How prompt/inference time was optimized<a class="anchor-link" href="#How-prompt/inference-time-was-optimized">¶</a></h2><p><strong>Architecture level</strong> — inference is removed from the hot path rather than optimized: deterministic rules + concept-grouped BM25 answer every known-vocabulary query in ~1–2 ms; the LLM runs only on unknown terms (or <code>llm_mode: always</code>), and recurring misses can be promoted into the synonym lexicon, shrinking the escalation rate over time.</p>
+<h2 id="How-prompt/inference-time-was-optimized">How prompt/inference time was optimized<a class="anchor-link" href="#How-prompt/inference-time-was-optimized">¶</a></h2><p><strong>Architecture level</strong> — inference is removed from the hot path rather than optimized: deterministic rules + concept-grouped BM25 answer every known-vocabulary query in ~1–2 ms; the LLM runs only on unknown terms (or <code>llm_mode: always</code>), and recurring misses become catalog tags or classifier training data, shrinking the escalation rate over time.</p>
 <p><strong>Inference level</strong> — measured on the live service, each lever verified by before/after benchmarks:</p>
 <ol>
 <li><strong><code>thinkingBudget: 0</code></strong> for the Gemini 2.5 family: these models spend hidden reasoning tokens by default, useless for classification. Effect: gemini-2.5-flash p50 <strong>4 287 → 773 ms (−82%)</strong> and its timeout fallbacks disappeared (2/6 → 0/6).</li>
 <li><strong>Compact wire schema + <code>maxOutputTokens: 96</code></strong>: single-letter JSON keys (<code>{"i","l","p","t","c"}</code>) roughly halve decode tokens — decode time dominates generation latency. Combined with a ~60% smaller prompt (terse rules + few-shot examples, context profile as one line): flash-lite p50 <strong>683 → 401 ms</strong>.</li>
 <li><strong>Regional Vertex endpoint</strong> (<code>europe-west4</code>, adjacent to the Cloud Run region) for the 2.5 family: ~250 ms RTT saved vs the global endpoint (3.x models are global-only).</li>
 <li><strong>TTL response cache</strong> on (model, query, context): repeated queries cost 0 ms.</li>
-<li><strong>Hard 6 s timeout + one retry, falling back to rules</strong>: the API never blocks on a slow model — gemini-3.5-flash still cannot meet the budget (its floor is ~3 s+ and <code>maxOutputTokens</code> truncates its mandatory thinking), so it fails fast to rules; the tier table above documents this honestly.</li>
+<li><strong>Hard 6 s timeout + one retry, falling back to the classifier</strong>: the API never blocks on a slow model — gemini-3.5-flash still cannot meet the budget (its floor is ~3 s+ and <code>maxOutputTokens</code> truncates its mandatory thinking), so it fails fast to the deterministic path; the tier table above documents this honestly.</li>
 </ol>
 <p><code>responseMimeType: application/json</code> + temperature 0 eliminate parse retries; the index is built once at startup from a catalog baked into the image; the service is stateless (Cloud Run, 3 × concurrency 80, session affinity for context locality).</p>
 </div>

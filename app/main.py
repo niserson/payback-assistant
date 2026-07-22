@@ -23,7 +23,10 @@ _state = {}
 async def lifespan(app: FastAPI):
     catalog = load_catalog()
     _state["index"] = BM25Index(catalog)
-    log.info("Indexed %d products across %d partners", len(catalog), len(PARTNERS))
+    from .intent_model import get_model
+    model = get_model()  # warm the learned classifier (trains on first-ever start)
+    log.info("Indexed %d products across %d partners; classifier ready (%d function words)",
+             len(catalog), len(PARTNERS), len(model.stopwords))
     yield
     _state.clear()
 

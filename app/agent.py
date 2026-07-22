@@ -2,15 +2,15 @@
 
 Decision table per the challenge:
   specific      -> execute cross-catalog search (recommend)
-  vague         -> ask a clarifying question
+  vague         -> ask a clarifying question (+ profile suggestions if history exists)
   navigational  -> route to a partner-scoped search
   support       -> hand off to customer service
   comparison    -> retrieve candidates and present a side-by-side
 
-Hybrid understanding: deterministic rules first (~0.2 ms). Only when rules find no
-retrievable product term does the agent consult Gemini (app.llm) to paraphrase the
-need into German catalog keywords or a clarifying question — with silent fallback
-to the rule path if the LLM is unavailable.
+Understanding is a learned classifier (~0.3 ms); the LLM (app.llm) is consulted
+when the query contains tokens the index can't ground — it translates the need
+into catalog terms or asks a clarifying question, with silent fallback to the
+deterministic path if the LLM is unavailable.
 """
 
 import time
@@ -21,43 +21,15 @@ from .intent import IntentResult, detect
 from .retrieval import BM25Index
 from .schemas import Action, AssistResponse, Product
 
-# Theme baskets let discovery queries ("stuff for a pasta dinner") expand into
-# concrete retrievable needs without any user history (cold-start friendly).
-_THEMES = {
-    "pasta": "spaghetti passierte tomaten parmesan olivenöl basilikum knoblauch hackfleisch",
-    "spaghetti": "spaghetti passierte tomaten parmesan olivenöl basilikum knoblauch",
-    "dinner": "pasta tomaten parmesan olivenöl",
-    "abendessen": "pasta tomaten parmesan olivenöl",
-    "frühstück": "müsli milch honig brot butter eier orangensaft",
-    "breakfast": "müsli milch honig brot butter eier orangensaft",
-    "grillen": "bratwurst grillwürstchen campingstuhl",
-    "bbq": "bratwurst grillwürstchen campingstuhl",
-    "baby": "windeln feuchttücher babybrei schnuller holzbausteine",
-    "party": "mineralwasser orangensaft bratwurst brettspiel",
-}
-
+# Response copy (UI text, not classification logic).
 _CLARIFY = {
-    "de": {
-        "default": "Kannst du das etwas eingrenzen? Suchst du z.B. Drogerie-Artikel, Lebensmittel oder etwas anderes — und bevorzugst du Bio-Marken?",
-        "geschenk": "Gerne! Für wen ist das Geschenk gedacht und welches Budget hast du ungefähr?",
-    },
-    "en": {
-        "default": "Could you narrow that down a bit? For example: drugstore items, groceries, or something else — and do you prefer organic brands?",
-        "geschenk": "Happy to help! Who is the gift for, and roughly what budget do you have in mind?",
-    },
+    "de": "Kannst du das etwas eingrenzen? Suchst du z.B. Drogerie-Artikel, Lebensmittel oder etwas anderes — und bevorzugst du Bio-Marken?",
+    "en": "Could you narrow that down a bit? For example: drugstore items, groceries, or something else — and do you prefer organic brands?",
 }
-
 _SUPPORT_MSG = {
     "de": "Das klingt nach einem Anliegen für unseren Kundenservice. Ich leite dich weiter: PAYBACK Service unter 089 / 996 331 60 oder im Hilfe-Center der App (Konto → Hilfe).",
     "en": "That sounds like a case for our customer service. Routing you now: PAYBACK Service at +49 89 996 331 60 or via the in-app Help Center (Account → Help).",
 }
-
-
-def _theme_query(tokens: list) -> Optional[str]:
-    for token in tokens:
-        if token in _THEMES:
-            return _THEMES[token]
-    return None
 
 
 def _profile_suggestions(index: BM25Index, profile: dict, k: int) -> list:
@@ -85,32 +57,36 @@ def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "a
     start = time.perf_counter()
     result: IntentResult = detect(query, index.vocabulary())
     lang = result.language
-    engine = "rules"
+    engine = "classifier"
     search_query = query
     llm_clarify: Optional[str] = None
     # Interest profile BEFORE this query: 30% weight in the LLM prompt and as a
     # category rank boost in retrieval.
     profile = context.interests(user_id) or None
 
-    # auto: escalate to the LLM when the fast path can't fully parse the query —
+    # auto: escalate to the LLM when the classifier's output can't be grounded —
     # nothing retrievable, or some content tokens unknown to the index (e.g.
     # "spiegelei fur fruhstuck": 'frühstück' matches but 'spiegelei' doesn't).
-    # always: every query goes through the LLM. off: rules only.
+    # always: every query goes through the LLM. off: deterministic only.
     needs_llm = (not result.is_specific) or bool(result.unknown_tokens)
     use_llm = llm.available() and llm_mode != "off" and (
         llm_mode == "always" or (needs_llm and result.intent in ("search", "discovery")))
     if use_llm:
         understood = llm.classify(query, user_context=context.prompt_context(user_id), model=model)
         if understood:
-            engine = f"rules+{llm.model_name(model)}@{llm.backend()}"
+            engine = f"classifier+{llm.model_name(model)}@{llm.backend()}"
             lang = understood["language"]
             result.intent = understood["intent"]
             result.partner = understood["partner"] or result.partner
             if understood["search_terms"]:
                 search_query = understood["search_terms"]
-                result.is_specific = True
+                result.is_specific, result.is_vague = True, False
             elif understood["clarifying_question"]:
                 llm_clarify = understood["clarifying_question"]
+
+    def run_search(partner=None, k=max_results):
+        return index.search(search_query, top_k=k, partner=partner, interests=profile,
+                            price_sensitive=result.price_sensitive)
 
     products: list = []
     action: Action
@@ -120,7 +96,7 @@ def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "a
         action = Action(type="support_handoff", detail=_SUPPORT_MSG[lang])
 
     elif result.intent == "comparison":
-        products = index.search(search_query, top_k=max(2, max_results), interests=profile)
+        products = run_search(k=max(2, max_results))
         detail = ("Vergleich der besten Treffer über alle Partner (Preis pro Einheit beachten)."
                   if lang == "de" else
                   "Side-by-side of the top matches across all partners (check price per unit).")
@@ -128,8 +104,7 @@ def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "a
 
     elif result.partner is not None:
         # Navigational: partner-scoped search; with no residual terms, plain routing.
-        products = index.search(search_query, top_k=max_results, partner=result.partner,
-                                interests=profile)
+        products = run_search(partner=result.partner)
         detail = (f"Weiterleitung zur Partner-Suche: {result.partner}."
                   if lang == "de" else f"Routing to partner-specific search: {result.partner}.")
         action = Action(type="route_to_partner", detail=detail)
@@ -138,39 +113,22 @@ def handle(query: str, index: BM25Index, max_results: int = 5, user_id: str = "a
         clarifying = llm_clarify
         action = Action(type="clarify", detail=clarifying)
 
-    elif result.intent == "discovery":
-        theme = _theme_query(result.content_tokens)
-        # Gifts are inherently vague without recipient/budget -> clarify per the challenge.
-        if any(t in ("geschenk", "gift", "present", "geschenkidee") for t in result.content_tokens):
-            clarifying = _CLARIFY[lang]["geschenk"]
-            action = Action(type="clarify", detail=clarifying)
-        elif theme:
-            products = index.search(theme, top_k=max_results, interests=profile)
-            detail = ("Themen-Warenkorb passend zu deiner Anfrage, partnerübergreifend zusammengestellt."
-                      if lang == "de" else
-                      "Theme basket assembled for your request across all partner catalogs.")
-            action = Action(type="recommend", detail=detail)
-        elif result.is_specific:
-            products = index.search(search_query, top_k=max_results, interests=profile)
-            action = Action(
-                type="recommend",
-                detail="Empfehlungen basierend auf deiner Anfrage." if lang == "de"
-                else "Recommendations based on your request.",
-            )
-        else:
-            clarifying = _CLARIFY[lang]["default"]
-            action = Action(type="clarify", detail=clarifying)
+    elif (result.is_vague and result.intent == "discovery") or not result.is_specific:
+        clarifying = _CLARIFY[lang]
+        action = Action(type="clarify", detail=clarifying)
 
-    else:  # search
-        products = index.search(search_query, top_k=max_results, interests=profile)
+    else:  # search or grounded discovery
+        products = run_search()
         if products:
-            action = Action(
-                type="recommend",
-                detail="Suchergebnisse über alle Partner-Kataloge." if lang == "de"
-                else "Search results across all partner catalogs.",
-            )
+            detail = ("Suchergebnisse über alle Partner-Kataloge." if lang == "de"
+                      else "Search results across all partner catalogs.")
+            if result.intent == "discovery":
+                detail = ("Empfehlungen passend zu deiner Anfrage, partnerübergreifend."
+                          if lang == "de" else
+                          "Recommendations for your request across all partner catalogs.")
+            action = Action(type="recommend", detail=detail)
         else:
-            clarifying = _CLARIFY[lang]["default"]
+            clarifying = _CLARIFY[lang]
             action = Action(type="clarify", detail=clarifying)
 
     # Vague query + existing profile: keep the clarifying question but add

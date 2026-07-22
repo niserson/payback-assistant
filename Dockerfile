@@ -13,8 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 
-# Pre-generate the synthetic catalog at build time (immutable, cache-friendly).
-RUN python -m app.catalog
+# Pre-generate the synthetic catalog and train the intent classifier at build
+# time (both deterministic, baked into the image: no cold-start work).
+RUN python -m app.catalog && python -m app.intent_model
 
 # Run as non-root (security baseline).
 RUN useradd --no-create-home appuser && chown -R appuser /srv

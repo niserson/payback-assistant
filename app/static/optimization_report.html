@@ -54,7 +54,7 @@
           <td class="num">~400 ms</td><td class="num">0 ms</td><td class="num good">−100%</td>
           <td class="num">—</td><td class="good">free</td></tr>
     </table>
-    <p class="muted" style="margin-bottom:0">Deterministic rules path (known-vocabulary queries) is unaffected: ~1–2 ms server-side.</p>
+    <p class="muted" style="margin-bottom:0">Deterministic classifier path (known-vocabulary queries) is unaffected: ~1–2 ms server-side.</p>
   </div>
 
   <h2>Optimizations tested and applied</h2>
@@ -92,7 +92,7 @@
         <code>europe-west4</code>/<code>west1</code> — these models are global-endpoint-only.</li>
       <li><span class="tag rejected">rejected</span><b>gemini-3.5-flash as a serving tier:</b> its inference floor
         (~3 s+, plus mandatory thinking that the output cap truncates) cannot meet the 6 s budget; it fast-fails
-        to the rules answer. Kept in the allowlist only for benchmarking honesty.</li>
+        to the deterministic answer. Kept in the allowlist only for benchmarking honesty.</li>
       <li><span class="tag rejected">rejected</span><b>Streaming:</b> the agent needs the complete JSON before
         acting, so time-to-first-token gains don't translate to end-to-end latency here.</li>
     </ol>
@@ -100,10 +100,8 @@
 
   <h2>Architecture-level context</h2>
   <div class="card">
-    <p style="margin:0">The strongest optimization remains <b>not calling the LLM</b>: deterministic
-    rules + concept-grouped BM25 answer every known-vocabulary query in ~1–2 ms, the LLM runs only on
-    unknown terms (or on request via <code>llm_mode: always</code>), and recurring misses can be promoted
-    into the synonym lexicon — the escalation rate shrinks over time. Live evidence for every number on
+    <p style="margin:0">The strongest optimization remains <b>not calling the LLM</b>: a learned query classifier + concept-grouped BM25 answer every known-vocabulary query in ~1–2 ms, the LLM runs only on
+    unknown terms (or on request via <code>llm_mode: always</code>), and recurring misses become catalog tags or classifier training data — the escalation rate shrinks over time. Live evidence for every number on
     this page is in the executed <a href="/performance-report">performance notebook</a>.</p>
   </div>
 </div>

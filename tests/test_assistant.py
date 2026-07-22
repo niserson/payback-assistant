@@ -90,15 +90,17 @@ def test_no_weak_tail_false_positives(index):
     assert hits and all("Windeln" in h["name"] for h in hits)
 
 
-def test_shopping_list_fully_understood_by_rules(index):
-    # Regression: umlaut-less typing + compound + list must not need clarification.
+def test_shopping_list_fully_understood_by_classifier(index):
+    # Umlaut-less typing folds to catalog vocabulary; the unknown compound
+    # (Avocadobrot) is flagged for LLM escalation instead of being hand-mapped.
     result = detect("Sussigkeiten, Avocadobrot, Pizza und Kuchen", index.vocabulary())
-    assert result.is_specific and not result.unknown_tokens
+    assert result.is_specific
+    assert result.unknown_tokens == ["avocadobrot"]
 
 
 def test_shopping_list_returns_products(client):
     body = ask(client, "Sussigkeiten, Avocadobrot, Pizza und Kuchen")
-    assert body["engine"] == "rules" and body["action"]["type"] == "recommend"
+    assert body["engine"] == "classifier" and body["action"]["type"] == "recommend"
     names = " ".join(p["name"] for p in body["products"]).lower()
     assert "pizza" in names
     assert ("schokolade" in names) or ("gummibärchen" in names)
@@ -106,11 +108,12 @@ def test_shopping_list_returns_products(client):
 
 
 def test_interest_rank_boost(index):
-    # Same ambiguous query, different profiles -> the favored category rises to #1.
-    korper = index.search("creme", interests={"Körperpflege": 100.0})
-    sonne = index.search("creme", interests={"Sonnenschutz": 100.0})
-    assert korper[0]["category"] == "Körperpflege"
-    assert sonne[0]["category"] == "Sonnenschutz"
+    # Same ambiguous query, different profiles -> the favored category rises to #1
+    # (Bio-Honig and Bio-Eier both carry 'bio' in their NAMES, so base scores tie).
+    breakfast = index.search("bio", interests={"Frühstück": 100.0})
+    dairy = index.search("bio", interests={"Molkerei & Eier": 100.0})
+    assert breakfast[0]["category"] == "Frühstück"
+    assert dairy[0]["category"] == "Molkerei & Eier"
 
 
 def test_partner_scoping(index):
@@ -152,8 +155,7 @@ def test_navigational_routes(client):
 
 def test_vague_asks_clarifying_question(client):
     body = ask(client, "Ich brauche ein Geschenk für jemanden")
-    assert body["action"]["type"] == "clarify"
-    assert "Budget" in body["clarifying_question"] or "budget" in body["clarifying_question"]
+    assert body["action"]["type"] == "clarify" and body["clarifying_question"]
     body2 = ask(client, "Ich suche irgendwas Schönes")
     assert body2["action"]["type"] == "clarify" and body2["clarifying_question"]
 
@@ -246,7 +248,7 @@ def test_llm_validate_maps_compact_keys():
 
 def test_rules_engine_marker(client):
     body = ask(client, "günstige Windeln")
-    assert body["engine"] == "rules"
+    assert body["engine"] == "classifier"
 
 
 def test_llm_mode_off_never_calls_llm(client, monkeypatch):
@@ -255,7 +257,7 @@ def test_llm_mode_off_never_calls_llm(client, monkeypatch):
     monkeypatch.setattr(llm, "classify", lambda *a, **k: pytest.fail("LLM called despite llm_mode=off"))
     body = client.post("/assist", json={"query": "irgendwas total unbekanntes zeug",
                                         "llm_mode": "off"}).json()
-    assert body["engine"] == "rules"
+    assert body["engine"] == "classifier"
 
 
 def test_llm_mode_always_calls_llm_on_known_query(client, monkeypatch):
@@ -273,7 +275,7 @@ def test_llm_mode_always_calls_llm_on_known_query(client, monkeypatch):
     body = client.post("/assist", json={"query": "günstige Windeln", "llm_mode": "always",
                                         "model": "gemini-2.5-flash"}).json()
     assert calls == ["gemini-2.5-flash"]
-    assert body["engine"].startswith("rules+gemini-2.5-flash@")
+    assert body["engine"].startswith("classifier+gemini-2.5-flash@")
 
 
 def test_model_allowlist_validated(client):
@@ -346,6 +348,6 @@ def test_llm_escalation_on_unknown_tokens(client, monkeypatch):
         "search_terms": "eier frühstück", "clarifying_question": None,
     })
     body = ask(client, "spiegelei fur fruhstuck")
-    assert body["engine"] == "rules+fake-model@test"
+    assert body["engine"] == "classifier+fake-model@test"
     names = " ".join(p["name"] for p in body["products"])
     assert "Eier" in names

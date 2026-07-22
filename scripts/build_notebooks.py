@@ -53,12 +53,12 @@ def demo_notebook(base: str) -> nbf.NotebookNode:
         md("## 5 — German · customer support (handoff, no products)"),
         code("ask('Ich habe ein Problem mit meinen PAYBACK Punkten')"),
         md("### Bonus — LLM escalation + user context\n"
-           "A paraphrase the lexicon cannot parse escalates to Gemini on Vertex AI; note the "
+           "A paraphrase the catalog vocabulary cannot ground escalates to Gemini on Vertex AI; note the "
            "`engine` field and the `user_context` interest profile accumulated by the five "
            "queries above (fed to the LLM with 30% weight)."),
         code("ask('Ich brauche etwas gegen wunden Po bei meinem Kleinkind')"),
         md("### Bonus — engine modes: `off` (rules only) vs `always` (LLM on every query)\n"
-           "Same query through both engines. Rules answer known vocabulary in ~1–2 ms server-side; "
+           "Same query through both engines. The classifier path answers known vocabulary in ~1–2 ms server-side; "
            "the optimized LLM path (thinking disabled, compact schema, regional Vertex endpoint — "
            "see [/optimization-report](/optimization-report)) adds ~0.4 s. `llm_mode` and `model` "
            "are per-request API fields."),
@@ -154,7 +154,7 @@ def evaluation_notebook(base: str) -> nbf.NotebookNode:
            "ranked-retrieval quality (**Hit@5, MRR@5, NDCG@5**).\n\n"
            "**Ground truth is independent of the retriever**: a product is relevant iff the query "
            "term literally appears in its tags or name — no synonyms, folding or stemming. The "
-           "retriever earns its scores by bridging umlauts, digraphs, plurals and DE↔EN synonyms "
+           "retriever earns its scores by bridging umlauts, digraphs and plurals over the catalogs' bilingual tags — no synonym lexicon exists — "
            "on top of that strict labeling. The dataset also lives in BigQuery "
            "(`payback_assistant.eval_examples`) alongside the three partner tables."),
         code("import os, sys, json\n"
@@ -166,12 +166,12 @@ def evaluation_notebook(base: str) -> nbf.NotebookNode:
              "print('intents  :', dict(Counter(e['intent'] for e in data)))\n"
              "print('languages:', dict(Counter(e['language'] for e in data)))\n"
              "print('actions  :', dict(Counter(e['expected_action'] for e in data)))"),
-        md("## Offline run (in-process, deterministic rules path — same thing CI asserts)"),
+        md("## Offline run (in-process, deterministic classifier path — same thing CI asserts)"),
         code("from evaluation.harness import run, print_report\n"
              "report = run(data)\n"
              "print_report(report)"),
         md("## Live spot-check: a random sample against the deployed Cloud Run service\n"
-           "Confirms the deployed revision matches the offline harness (rules path, "
+           "Confirms the deployed revision matches the offline harness (classifier path, "
            "`llm_mode: off` for determinism)."),
         code("import random, requests\n"
              f"BASE = {base!r}\n"
@@ -186,10 +186,11 @@ def evaluation_notebook(base: str) -> nbf.NotebookNode:
              "action {ok_action}/{len(sample)}')"),
         md("## Reading the numbers\n"
            "- **Intent/action accuracy ≈ 99%** with the confusions listed openly — e.g. a support "
-           "phrasing without lexicon keywords drifting to discovery. Each confusion is a concrete "
-           "lexicon fix or an LLM-escalation candidate.\n"
-           "- **Hit@5 ≈ 0.99, NDCG@5 ≈ 0.97** against strict literal ground truth shows the "
-           "normalization/synonym layer does real work (English queries retrieve German products).\n"
+           "phrasing outside the training distribution drifting to another class. Each confusion is a concrete "
+           "training-data fix or an LLM-escalation candidate.\n"
+           "- **Hit@5 ≈ 1.0, NDCG@5 ≈ 0.99** against strict literal ground truth shows the "
+           "folding/stemming normalization plus the catalogs' bilingual tags do real work "
+           "(English queries retrieve German products, no synonym lexicon involved).\n"
            "- Limitations stated plainly: the dataset is synthetic (template-generated), so scores "
            "measure coverage of the modeled query space, not real-user distribution; the LLM path "
            "is excluded here for determinism (its behavior is exercised in the cold-start and demo "
@@ -209,7 +210,7 @@ def performance_notebook(base: str) -> nbf.NotebookNode:
              "from concurrent.futures import ThreadPoolExecutor\n"
              f"BASE = {base!r}\n"
              "QUERIES = ['günstige Windeln', 'Suche Shampoo bei dm', 'pasta tomaten parmesan',\n"
-             "           'Schokolade und Chips', 'Mineralwasser 6er']  # rules path = steady-state hot path\n"
+             "           'Schokolade und Chips', 'Mineralwasser 6er']  # classifier path = steady-state hot path\n"
              "def run_load(n_requests, concurrency):\n"
              "    latencies, errors = [], 0\n"
              "    session = requests.Session()\n"
@@ -242,7 +243,7 @@ def performance_notebook(base: str) -> nbf.NotebookNode:
            "round-trip to the client excluded).\n\n"
            "**LLM used** counts responses whose `engine` shows the model actually answered; "
            "the remainder hit the service's 6 s LLM timeout (plus one retry) and fell back "
-           "to the deterministic rules path — the ~12 s latencies of slow tiers are the two "
+           "to the deterministic classifier path — the ~12 s latencies of slow tiers are the two "
            "exhausted timeouts, not usable inference. `always` means *always attempt* the "
            "LLM; the timeout guard means the API still answers when a tier can't keep up."),
         code("MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.5-flash']\n"
@@ -260,7 +261,7 @@ def performance_notebook(base: str) -> nbf.NotebookNode:
              "        used += m in r['engine']  # engine names the model only when it answered\n"
              "    lats.sort()\n"
              "    n = len(PARAPHRASES)\n"
-             "    verdict = 'ok' if used == n else (f'{n - used} timeout fallback(s) to rules')\n"
+             "    verdict = 'ok' if used == n else (f'{n - used} timeout fallback(s) to deterministic path')\n"
              "    print(f'{m:26} {lats[len(lats)//2]:8.0f} {lats[-1]:8.0f} {statistics.mean(lats):8.0f} '\n"
              "          f'{used}/{n:>3}  {verdict}')"),
         md("### Response cache: repeated queries are free\n"
@@ -292,7 +293,7 @@ def performance_notebook(base: str) -> nbf.NotebookNode:
            "**Architecture level** — inference is removed from the hot path rather than "
            "optimized: deterministic rules + concept-grouped BM25 answer every known-vocabulary "
            "query in ~1–2 ms; the LLM runs only on unknown terms (or `llm_mode: always`), and "
-           "recurring misses can be promoted into the synonym lexicon, shrinking the escalation "
+           "recurring misses become catalog tags or classifier training data, shrinking the escalation "
            "rate over time.\n\n"
            "**Inference level** — measured on the live service, each lever verified by "
            "before/after benchmarks:\n"
@@ -307,9 +308,9 @@ def performance_notebook(base: str) -> nbf.NotebookNode:
            "for the 2.5 family: ~250 ms RTT saved vs the global endpoint (3.x models are "
            "global-only).\n"
            "4. **TTL response cache** on (model, query, context): repeated queries cost 0 ms.\n"
-           "5. **Hard 6 s timeout + one retry, falling back to rules**: the API never blocks on "
+           "5. **Hard 6 s timeout + one retry, falling back to the classifier**: the API never blocks on "
            "a slow model — gemini-3.5-flash still cannot meet the budget (its floor is ~3 s+ "
-           "and `maxOutputTokens` truncates its mandatory thinking), so it fails fast to rules; "
+           "and `maxOutputTokens` truncates its mandatory thinking), so it fails fast to the deterministic path; "
            "the tier table above documents this honestly.\n\n"
            "`responseMimeType: application/json` + temperature 0 eliminate parse retries; the "
            "index is built once at startup from a catalog baked into the image; the service is "

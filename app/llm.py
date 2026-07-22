@@ -14,7 +14,7 @@ Inference-latency engineering (measured, see /performance-report):
   - Regional Vertex endpoint (europe-west4, close to the Cloud Run region) for the
     2.5 family: ~250ms less than the global endpoint; 3.x models are global-only.
   - Small TTL response cache: identical (query, model, context) repeats are free.
-  - Hard timeout + one retry, falling back to rules: the API never blocks on a
+  - Hard timeout + one retry, falling back to the classifier path: the API never blocks on a
     slow model.
 """
 
@@ -133,7 +133,7 @@ def _generation_config(model: str) -> dict:
 
 def classify(query: str, user_context: Optional[str] = None,
              model: Optional[str] = None) -> Optional[dict]:
-    """Returns a validated understanding dict, or None (caller falls back to rules)."""
+    """Returns a validated understanding dict, or None (caller falls back to the classifier)."""
     if not available():
         return None
     resolved = model_name(model)
@@ -165,7 +165,7 @@ def classify(query: str, user_context: Optional[str] = None,
             return result
         except Exception as exc:  # noqa: BLE001 — any LLM failure must not break the API
             if attempt == 2:
-                log.warning("gemini unavailable, falling back to rules: %s", exc)
+                log.warning("gemini unavailable, falling back to classifier: %s", exc)
                 return None
             time.sleep(0.3)
     return None
